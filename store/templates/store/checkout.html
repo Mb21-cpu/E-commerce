@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %}Finalizar Compra{% endblock %}
+
+{% block content %}
+    <div class="checkout-container">
+        <h1>Finalizar Compra</h1>
+
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <div class="checkout-grid">
+            <section class="cart-summary-section">
+                <h2>Resumen del Carrito</h2>
+                <div class="summary-details">
+                    {% for item in cart_items %}
+                        <div class="summary-item">
+                            <span class="item-name">{{ item.name }}</span>
+                            <div class="item-info">
+                                <span class="item-quantity">Cant: {{ item.quantity }}</span>
+                                <span class="item-price">{{ item.total|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="cart-total-footer">
+                    <p><strong>Total a Pagar:</strong> ${{ cart_total|floatformat:2 }}</p>
+                </div>
+            </section>
+
+            <section class="checkout-form-section">
+                <h2>Datos del Comprador y Pago</h2>
+                <form action="{% url 'checkout' %}" method="post" class="checkout-form">
+                    {% csrf_token %}
+
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" name="email" value="{{ request.user.email }}" required class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="address">Dirección de Envío:</label>
+                        <textarea id="address" name="address" required class="form-control"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="card_number">Número de Tarjeta (Ficticio):</label>
+                        <input type="text" id="card_number" name="card_number" required class="form-control" placeholder="**** **** **** ****">
+                    </div>
+
+                    <button type="submit" class="checkout-btn">Confirmar Compra</button>
+                </form>
+            </section>
+        </div>
+    </div>
+
+    <style>
+        :root {
+            --primary-color: #3f51b5;
+            --secondary-color: #f44336;
+            --background-color: #f7f9fc;
+            --card-bg: #fff;
+            --border-color: #e0e0e0;
+            --text-color: #333;
+            --sub-text-color: #666;
+            --light-border: #ddd;
+        }
+
+        body {
+            background-color: var(--background-color);
+        }
+
+        .checkout-container {
+            padding: 40px 20px;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+        }
+
+        .checkout-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .cart-summary-section, .checkout-form-section {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            height: fit-content;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+            font-size: 1.6em;
+            border-bottom: 2px solid var(--light-border);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .summary-details {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--background-color);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--light-border);
+        }
+
+        .item-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: var(--text-color);
+        }
+
+        .item-info {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9em;
+            color: var(--sub-text-color);
+        }
+
+        .item-price {
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 1.1em;
+        }
+
+        .cart-total-footer {
+            text-align: right;
+            padding-top: 15px;
+            border-top: 2px dashed var(--light-border);
+        }
+
+        .cart-total-footer p {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: var(--text-color);
+            margin: 0;
+        }
+
+        .checkout-form .form-group {
+            margin-bottom: 25px;
+        }
+
+        .checkout-form label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-color);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--light-border);
+            border-radius: 8px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.2);
+        }
+
+        .checkout-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s;
+            font-weight: bold;
+        }
+
+        .checkout-btn:hover {
+            background-color: #2a3c5a;
+            transform: translateY(-2px);
+        }
+
+        /* Media Queries para responsividad */
+        @media (max-width: 768px) {
+            .checkout-grid {
+                grid-template-columns: 1fr;
+            }
+            .checkout-container {
+                padding: 20px 10px;
+            }
+        }
+    </style>
+{% endblock %}
