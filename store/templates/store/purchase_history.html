@@ -1,79 +1,163 @@
 {% extends 'base.html' %}
 
+{% block title %}Historial de Compras{% endblock %}
+
 {% block content %}
-<style>
-    .history-container {
-        padding: 2rem;
-        background-color: var(--color-white);
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        margin-top: 2rem;
-    }
+    <div class="purchase-history-container">
+        <h1>Historial de Compras</h1>
 
-    .history-container h1 {
-        text-align: center;
-        color: var(--color-blue);
-        margin-bottom: 2rem;
-    }
-
-    .order-item {
-        border-bottom: 1px solid #ddd;
-        padding: 1.5rem 0;
-    }
-
-    .order-item:last-child {
-        border-bottom: none;
-    }
-
-    .order-header {
-        display: flex;
-        justify-content: space-between;
-        font-weight: bold;
-        margin-bottom: 1rem;
-    }
-
-    .order-header span {
-        color: var(--color-dark-gray);
-    }
-
-    .product-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-
-    .product-list li {
-        margin-bottom: 0.5rem;
-    }
-
-    .no-orders-message {
-        text-align: center;
-        font-style: italic;
-        color: #777;
-    }
-</style>
-
-<div class="history-container">
-    <h1>Historial de Compras</h1>
-
-    {% if orders %}
-        {% for order in orders %}
-        <div class="order-item">
-            <div class="order-header">
-                <span>Orden #{{ order.id }}</span>
-                <span>Fecha: {{ order.created_at|date:"d M Y, H:i" }}</span>
-                <span>Total: ${{ order.total_price }}</span>
-            </div>
-            <h3>Productos:</h3>
-            <ul class="product-list">
-                {% for item in order.items.all %}
-                <li>{{ item.product.name }} - Cantidad: {{ item.quantity }} - Precio: ${{ item.price }}</li>
+        {% if orders %}
+            <div class="orders-list">
+                {% for order in orders %}
+                    <div class="order-card">
+                        <div class="order-header">
+                            <h2>Orden #{{ order.id }}</h2>
+                            <div class="order-info">
+                                <span class="order-date">
+                                    Fecha: {{ order.created|date:"d M Y" }}
+                                </span>
+                                <span class="order-total">
+                                    Total: ${{ order.total_paid|floatformat:2 }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="order-details">
+                            <h3>Productos:</h3>
+                            <ul>
+                                {% for item in order.items.all %}
+                                    <li>
+                                        {{ item.product.name }}
+                                        <div class="item-info">
+                                            <span class="item-quantity">({{ item.quantity }} unidades)</span>
+                                            <span class="item-price">${{ item.price|floatformat:2 }}</span>
+                                        </div>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
                 {% endfor %}
-            </ul>
-        </div>
-        {% endfor %}
-    {% else %}
-        <p class="no-orders-message">No tienes compras registradas aún.</p>
-    {% endif %}
-</div>
+            </div>
+        {% else %}
+            <p>Aún no tienes un historial de compras.</p>
+        {% endif %}
+    </div>
+
+    <style>
+        :root {
+            --primary-color: #3f51b5;
+            --secondary-color: #f44336;
+            --background-color: #f7f9fc;
+            --card-bg: #fff;
+            --border-color: #e0e0e0;
+            --text-color: #333;
+            --sub-text-color: #666;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .purchase-history-container {
+            padding: 40px 20px;
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .orders-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .order-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .order-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px dashed var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .order-header h2 {
+            color: var(--primary-color);
+            margin: 0;
+            font-size: 1.8em;
+        }
+
+        .order-info {
+            display: flex;
+            gap: 25px;
+            font-size: 1em;
+            color: var(--sub-text-color);
+        }
+
+        .order-details h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: var(--text-color);
+            font-size: 1.3em;
+        }
+
+        .order-details ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .order-details li {
+            background-color: var(--background-color);
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .item-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .item-quantity {
+            font-size: 0.9em;
+            color: var(--sub-text-color);
+        }
+
+        .item-price {
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 1.1em;
+        }
+
+        /* Media Queries para responsividad */
+        @media (max-width: 768px) {
+            .order-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .order-info {
+                margin-top: 10px;
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
 {% endblock %}

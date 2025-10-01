@@ -2,33 +2,97 @@
 
 {% block content %}
 <style>
+    /* -- Variables de color -- */
+    :root {
+        --color-blue: #001f3f;
+        --color-white: #ffffff;
+        --color-gray: #f4f4f4;
+        --color-dark-gray: #333;
+        --color-light-gray: #e9ecef;
+        --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        --transition-speed: 0.3s;
+    }
+
     .product-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding: 2rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        padding: 40px;
         background-color: var(--color-white);
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
         margin-top: 2rem;
+        align-items: center;
+    }
+
+    @media (max-width: 768px) {
+        .product-container {
+            grid-template-columns: 1fr;
+            padding: 20px;
+        }
+    }
+
+    .product-image-section {
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
 
     .product-image {
         max-width: 100%;
         height: auto;
         border-radius: 8px;
-        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: transform var(--transition-speed) ease;
     }
 
-    .product-details {
-        max-width: 600px;
+    .product-image:hover {
+        transform: scale(1.03);
+    }
+
+    .product-details-section {
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .product-details-section h1 {
+        color: var(--color-blue);
+        margin: 0 0 10px 0;
+        font-size: 2.5rem;
+    }
+
+    .product-details-section h1 + p {
+        font-size: 1.25rem;
+        font-weight: bold;
+        color: var(--color-dark-gray);
+    }
+
+    .product-details-section p {
+        margin: 0 0 10px 0;
+        color: var(--color-dark-gray);
         line-height: 1.6;
     }
 
-    .product-details h1 {
+    .product-details-section .price {
+        font-size: 2rem;
         color: var(--color-blue);
-        margin-bottom: 0.5rem;
+        font-weight: bold;
+        margin: 15px 0;
+    }
+
+    .product-details-section .sku,
+    .product-details-section .stock {
+        font-size: 0.9rem;
+        color: var(--color-dark-gray);
+        border-top: 1px dashed var(--color-light-gray);
+        padding-top: 10px;
+        margin-top: 20px;
+    }
+
+    .product-details-section .stock {
+        margin-top: 0;
     }
 
     .add-to-cart-button {
@@ -36,33 +100,38 @@
         color: var(--color-white);
         border: none;
         padding: 1rem 2rem;
-        font-size: 1rem;
+        font-size: 1.1rem;
         font-weight: bold;
-        border-radius: 5px;
+        border-radius: 8px;
         cursor: pointer;
-        transition: background-color 0.3s ease;
-        margin-top: 1.5rem;
+        transition: background-color var(--transition-speed) ease, transform var(--transition-speed) ease;
+        margin-top: 20px;
+        width: 100%;
     }
 
     .add-to-cart-button:hover {
         background-color: #003366;
+        transform: translateY(-2px);
     }
 </style>
 
 <div class="product-container">
-    <h1>{{ product.name }}</h1>
-    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
-
-    <div class="product-details">
-        <p><strong>SKU:</strong> {{ product.sku }}</p>
-        <p><strong>Precio:</strong> ${{ product.price }}</p>
-        <p><strong>Stock:</strong> {{ product.stock }} unidades</p>
-        <p>{{ product.description }}</p>
+    <div class="product-image-section">
+        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
     </div>
 
-<form hx-post="{% url 'add_to_cart' product.id %}" hx-target="#floating-message-container" hx-swap="innerHTML">
-    {% csrf_token %}
-    <button type="submit" class="add-to-cart-button">Añadir al Carrito</button>
-</form>
+    <div class="product-details-section">
+        <h1>{{ product.name }}</h1>
+        <p class="price">${{ product.price|floatformat:2 }}</p>
+        <p>{{ product.description }}</p>
+
+        <p class="sku"><strong>SKU:</strong> {{ product.sku }}</p>
+        <p class="stock"><strong>Stock:</strong> {{ product.stock }} unidades</p>
+
+        <form hx-post="{% url 'add_to_cart' product.id %}" hx-target="#floating-message-container" hx-swap="innerHTML">
+            {% csrf_token %}
+            <button type="submit" class="add-to-cart-button">Añadir al Carrito</button>
+        </form>
+    </div>
 </div>
 {% endblock %}

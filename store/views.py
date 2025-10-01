@@ -9,7 +9,9 @@ from django.views.generic import CreateView
 from django.urls import reverse_lazy
 import decimal
 
-from .models import Product, Order, OrderItem
+from .models import Product
+from orders.models import Order, OrderItem
+# Ya no es necesario importar 'stripe' ni 'settings'
 
 
 # --------------------
@@ -163,32 +165,40 @@ def remove_from_cart(request, product_id):
 @login_required
 def checkout(request):
     """
-    Procesa el carrito y crea una orden de compra.
+    Procesa el carrito y crea una orden de compra de forma local,
+    sin procesar un pago real.
     """
     cart = request.session.get('cart', {})
+    total_checkout_cost = sum(decimal.Decimal(item['price']) * item['quantity'] for item in cart.values())
 
     if not cart:
         messages.error(request, "Tu carrito está vacío.")
         return redirect('product_list')
 
-    order = Order.objects.create(user=request.user, is_paid=True)
-    total_checkout_cost = decimal.Decimal(0)
+    if request.method == 'POST':
+        # 1. Se crea la orden principal (Order)
+        order = Order.objects.create(
+            customer=request.user,
+            customer_email=request.user.email,
+            shipping_address=request.POST.get('address'),
+            total_paid=total_checkout_cost
+        )
 
-    for product_id, item_data in cart.items():
-        try:
+        # 2. Se itera sobre cada producto en el carrito
+        for product_id, item_data in cart.items():
             product = get_object_or_404(Product, id=product_id)
             item_price = decimal.Decimal(item_data['price'])
             item_quantity = item_data['quantity']
 
             if product.stock < item_quantity:
-                messages.error(request,
-                               f"Lo sentimos, no hay suficiente stock para {product.name}. Solo hay {product.stock} unidades disponibles.")
+                messages.error(request, f"Lo sentimos, no hay suficiente stock para {product.name}. Solo hay {product.stock} unidades disponibles.")
                 order.delete()
                 return redirect('cart_detail')
 
             product.stock -= item_quantity
             product.save()
 
+            # 3. Se crea el item de la orden y se vincula a la orden principal
             OrderItem.objects.create(
                 order=order,
                 product=product,
@@ -196,20 +206,21 @@ def checkout(request):
                 quantity=item_quantity
             )
 
-            total_checkout_cost += item_price * item_quantity
+        # 4. Se vacía el carrito
+        del request.session['cart']
 
-        except Product.DoesNotExist:
-            messages.warning(request,
-                             f"El producto {item_data['name']} ya no está disponible y no se añadió a la orden.")
-            continue
+        messages.success(request, "¡Gracias por tu compra simulada! Tu pedido ha sido completado.")
+        return redirect('purchase_history')
 
-    order.total_price = total_checkout_cost
-    order.save()
-
-    del request.session['cart']
-
-    messages.success(request, "¡Gracias por tu compra! Tu pedido ha sido completado.")
-    return redirect('purchase_history')
+    # Este `return` es lo que faltaba para las solicitudes GET.
+    # Está fuera del bloque `if request.method == 'POST'`.
+    cart_count = get_cart_count(request)
+    context = {
+        'cart_items': cart.values(),
+        'cart_total': total_checkout_cost,
+        'cart_count': cart_count,
+    }
+    return render(request, 'store/checkout.html', context)
 
 
 @login_required
@@ -217,7 +228,8 @@ def purchase_history_view(request):
     """
     Muestra el historial de compras del usuario autenticado.
     """
-    orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    # Se corrige el nombre del campo a '-created' para ordenar por fecha de creación
+    orders = Order.objects.filter(customer=request.user).order_by('-created')
     cart_count = get_cart_count(request)
     context = {
         'orders': orders,
@@ -234,7 +246,7 @@ def delete_purchase_history(request):
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
         if user_id:
-            Order.objects.filter(user_id=user_id).delete()
+            Order.objects.filter(customer_id=user_id).delete()
             messages.success(request, "El historial de compras del usuario ha sido eliminado.")
             return redirect('purchase_history')
         else:
