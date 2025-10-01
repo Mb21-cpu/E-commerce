@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .cart-container {
+        padding: 2rem;
+        background-color: var(--color-white);
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin-top: 2rem;
+    }
+
+    .cart-container h1 {
+        text-align: center;
+        color: var(--color-blue);
+        margin-bottom: 1.5rem;
+    }
+
+    .cart-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 2rem;
+        font-size: 1rem;
+    }
+
+    .cart-table th, .cart-table td {
+        text-align: left;
+        padding: 1rem;
+        border-bottom: 1px solid var(--color-gray);
+    }
+
+    .cart-table th {
+        background-color: var(--color-blue);
+        color: var(--color-white);
+    }
+
+    .cart-table tbody tr:hover {
+        background-color: #f9f9f9;
+    }
+
+    .cart-summary {
+        text-align: right;
+        font-size: 1.25rem;
+        font-weight: bold;
+        color: var(--color-dark-gray);
+        margin-bottom: 1.5rem;
+    }
+
+    .cart-empty-message {
+        text-align: center;
+        padding: 2rem;
+        font-style: italic;
+        color: #777;
+    }
+
+    .checkout-button {
+        display: block;
+        width: fit-content;
+        margin: 0 auto;
+        padding: 1rem 2rem;
+        background-color: var(--color-blue);
+        color: var(--color-white);
+        text-align: center;
+        text-decoration: none;
+        font-weight: bold;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+    }
+
+    .checkout-button:hover {
+        background-color: #003366;
+    }
+
+    /* New styles for quantity control and remove button */
+    .quantity-control {
+        display: flex;
+        align-items: center;
+    }
+    .quantity-control button, .remove-button {
+        background-color: transparent;
+        border: 1px solid var(--color-blue);
+        color: var(--color-blue);
+        padding: 0.2rem 0.5rem;
+        cursor: pointer;
+        border-radius: 3px;
+    }
+    .quantity-control .quantity-display {
+        margin: 0 0.5rem;
+    }
+</style>
+
+<div class="cart-container">
+    <h1>Tu Carrito de Compras</h1>
+    {% if cart_items %}
+    <table class="cart-table">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio</th>
+                <th>Total</th>
+                <th></th> </tr>
+        </thead>
+        <tbody>
+            {% for item in cart_items %}
+            <tr>
+                <td>{{ item.name }}</td>
+                <td>
+                    <div class="quantity-control">
+                        <form action="{% url 'update_cart' product_id=item.product_id %}" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="decrease">
+                            <button type="submit">-</button>
+                        </form>
+                        <span class="quantity-display">{{ item.quantity }}</span>
+                        <form action="{% url 'update_cart' product_id=item.product_id %}" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="increase">
+                            <button type="submit">+</button>
+                        </form>
+                    </div>
+                </td>
+                <td>${{ item.price }}</td>
+                <td>${{ item.total|floatformat:2 }}</td>
+                <td>
+                    <form action="{% url 'remove_from_cart' product_id=item.product_id %}" method="post" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este producto del carrito?');">
+                        {% csrf_token %}
+                        <button type="submit" class="remove-button">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <h3 class="cart-summary">Total a Pagar: ${{ cart_total|floatformat:2 }}</h3>
+    <a href="{% url 'checkout' %}" class="checkout-button">Finalizar Compra</a>
+    {% else %}
+    <p class="cart-empty-message">Tu carrito está vacío.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .product-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 2rem;
+        background-color: var(--color-white);
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin-top: 2rem;
+    }
+
+    .product-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+
+    .product-details {
+        max-width: 600px;
+        line-height: 1.6;
+    }
+
+    .product-details h1 {
+        color: var(--color-blue);
+        margin-bottom: 0.5rem;
+    }
+
+    .add-to-cart-button {
+        background-color: var(--color-blue);
+        color: var(--color-white);
+        border: none;
+        padding: 1rem 2rem;
+        font-size: 1rem;
+        font-weight: bold;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        margin-top: 1.5rem;
+    }
+
+    .add-to-cart-button:hover {
+        background-color: #003366;
+    }
+</style>
+
+<div class="product-container">
+    <h1>{{ product.name }}</h1>
+    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+
+    <div class="product-details">
+        <p><strong>SKU:</strong> {{ product.sku }}</p>
+        <p><strong>Precio:</strong> ${{ product.price }}</p>
+        <p><strong>Stock:</strong> {{ product.stock }} unidades</p>
+        <p>{{ product.description }}</p>
+    </div>
+
+<form hx-post="{% url 'add_to_cart' product.id %}" hx-target="#floating-message-container" hx-swap="innerHTML">
+    {% csrf_token %}
+    <button type="submit" class="add-to-cart-button">Añadir al Carrito</button>
+</form>
+</div>
+{% endblock %}

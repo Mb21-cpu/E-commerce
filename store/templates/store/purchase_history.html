@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .history-container {
+        padding: 2rem;
+        background-color: var(--color-white);
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin-top: 2rem;
+    }
+
+    .history-container h1 {
+        text-align: center;
+        color: var(--color-blue);
+        margin-bottom: 2rem;
+    }
+
+    .order-item {
+        border-bottom: 1px solid #ddd;
+        padding: 1.5rem 0;
+    }
+
+    .order-item:last-child {
+        border-bottom: none;
+    }
+
+    .order-header {
+        display: flex;
+        justify-content: space-between;
+        font-weight: bold;
+        margin-bottom: 1rem;
+    }
+
+    .order-header span {
+        color: var(--color-dark-gray);
+    }
+
+    .product-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .product-list li {
+        margin-bottom: 0.5rem;
+    }
+
+    .no-orders-message {
+        text-align: center;
+        font-style: italic;
+        color: #777;
+    }
+</style>
+
+<div class="history-container">
+    <h1>Historial de Compras</h1>
+
+    {% if orders %}
+        {% for order in orders %}
+        <div class="order-item">
+            <div class="order-header">
+                <span>Orden #{{ order.id }}</span>
+                <span>Fecha: {{ order.created_at|date:"d M Y, H:i" }}</span>
+                <span>Total: ${{ order.total_price }}</span>
+            </div>
+            <h3>Productos:</h3>
+            <ul class="product-list">
+                {% for item in order.items.all %}
+                <li>{{ item.product.name }} - Cantidad: {{ item.quantity }} - Precio: ${{ item.price }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="no-orders-message">No tienes compras registradas aún.</p>
+    {% endif %}
+</div>
+{% endblock %}
