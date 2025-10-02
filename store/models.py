@@ -47,3 +47,21 @@ class OrderItem(models.Model):
         return f'{self.product.name} ({self.quantity})'
 
 
+
+
+class ContactMessage(models.Model):
+    """
+    Modelo para almacenar los mensajes enviados desde el formulario de contacto.
+    """
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Mensaje de {self.name} ({self.email})'
+
+    class Meta:
+        verbose_name = "Mensaje de Contacto"
+        verbose_name_plural = "Mensajes de Contacto"
+        ordering = ['-created_at']

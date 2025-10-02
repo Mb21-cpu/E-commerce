@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Product
+from .models import Product, ContactMessage  # Importa ContactMessage aquí
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
@@ -28,9 +28,28 @@ class CustomUserAdmin(BaseUserAdmin):
     """
     actions = [delete_purchase_history]
 
+
 # Re-registra el modelo de usuario con tu clase de administración personalizada
 admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
 
 # Registra los modelos de tu tienda en el panel de administración
-admin.site.register(Product)
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ('name', 'price', 'stock', 'available')
+    list_filter = ('available',)
+    list_editable = ('price', 'stock', 'available')
+    prepopulated_fields = {'slug': ('name',)}
+
+
+@admin.register(ContactMessage)
+class ContactMessageAdmin(admin.ModelAdmin):
+    """
+    Clase de administración para el modelo ContactMessage.
+    Permite ver el mensaje completo y solo lectura de los campos.
+    """
+    list_display = ('name', 'email', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('name', 'email', 'message')
+    # Los campos se marcan como solo lectura para que los mensajes no se modifiquen accidentalmente.
+    readonly_fields = ('name', 'email', 'message', 'created_at')
