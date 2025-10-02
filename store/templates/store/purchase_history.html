@@ -11,29 +11,27 @@
                 {% for order in orders %}
                     <div class="order-card">
                         <div class="order-header">
-                            <h2>Orden #{{ order.id }}</h2>
+                            <!-- MODIFICACIÓN CLAVE: El ID de la orden ahora es un enlace a la vista de detalle -->
+                            <h2 class="text-indigo-600 hover:text-indigo-800 transition duration-150">
+                                <a href="{% url 'order_detail' order.id %}">
+                                    Orden #{{ order.id }}
+                                </a>
+                            </h2>
                             <div class="order-info">
                                 <span class="order-date">
                                     Fecha: {{ order.created|date:"d M Y" }}
                                 </span>
                                 <span class="order-total">
-                                    Total: ${{ order.total_paid|floatformat:2 }}
+                                    Total: <span class="font-bold text-green-600">${{ order.total_paid|floatformat:2 }}</span>
                                 </span>
                             </div>
                         </div>
-                        <div class="order-details">
-                            <h3>Productos:</h3>
-                            <ul>
-                                {% for item in order.items.all %}
-                                    <li>
-                                        {{ item.product.name }}
-                                        <div class="item-info">
-                                            <span class="item-quantity">({{ item.quantity }} unidades)</span>
-                                            <span class="item-price">${{ item.price|floatformat:2 }}</span>
-                                        </div>
-                                    </li>
-                                {% endfor %}
-                            </ul>
+
+                        <!-- Botón de Detalles para mayor visibilidad (usando tus clases CSS existentes) -->
+                        <div class="order-details text-right">
+                            <a href="{% url 'order_detail' order.id %}" class="detail-button">
+                                Ver Detalles de la Orden
+                            </a>
                         </div>
                     </div>
                 {% endfor %}
@@ -45,8 +43,8 @@
 
     <style>
         :root {
-            --primary-color: #3f51b5;
-            --secondary-color: #f44336;
+            --primary-color: #4f46e5; /* Indigo 600 */
+            --secondary-color: #10b981; /* Green 500 */
             --background-color: #f7f9fc;
             --card-bg: #fff;
             --border-color: #e0e0e0;
@@ -57,12 +55,22 @@
         body {
             background-color: var(--background-color);
             color: var(--text-color);
+            /* Asegurar que se herede el font-family si 'base.html' no lo tiene */
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
         .purchase-history-container {
             padding: 40px 20px;
             max-width: 900px;
             margin: auto;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: 800;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            text-align: center;
         }
 
         .orders-list {
@@ -75,76 +83,76 @@
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 30px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            transition: transform 0.2s ease-in-out;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s;
         }
 
         .order-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
 
         .order-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px dashed var(--border-color);
+            border-bottom: 1px solid var(--border-color);
             padding-bottom: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .order-header h2 {
-            color: var(--primary-color);
             margin: 0;
-            font-size: 1.8em;
+            font-size: 1.6em;
+            font-weight: 700;
+        }
+
+        /* Estilo para que el enlace del título herede el color y solo cambie al pasar el mouse */
+        .order-header a {
+            text-decoration: none;
+            color: var(--primary-color); /* Usar el color primario para el enlace */
+        }
+
+        .order-header a:hover {
+            color: #3730a3; /* Un tono más oscuro de indigo al pasar el mouse */
         }
 
         .order-info {
             display: flex;
             gap: 25px;
-            font-size: 1em;
-            color: var(--sub-text-color);
-        }
-
-        .order-details h3 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            color: var(--text-color);
-            font-size: 1.3em;
-        }
-
-        .order-details ul {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .order-details li {
-            background-color: var(--background-color);
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-
-        .item-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .item-quantity {
             font-size: 0.9em;
             color: var(--sub-text-color);
         }
 
-        .item-price {
-            font-weight: bold;
-            color: var(--primary-color);
-            font-size: 1.1em;
+        .order-details {
+            padding-top: 10px;
+            text-align: right;
         }
+
+        /* Estilo para el botón de detalles personalizado */
+        .detail-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 18px;
+            border: none;
+            text-decoration: none;
+            font-size: 0.9em;
+            font-weight: 500;
+            border-radius: 9999px; /* Fully rounded */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.15s ease-in-out, transform 0.1s;
+            color: white;
+            background-color: #6366f1; /* Indigo 500 */
+        }
+
+        .detail-button:hover {
+            background-color: #4f46e5; /* Indigo 600 */
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .text-green-600 { color: var(--secondary-color); }
+
 
         /* Media Queries para responsividad */
         @media (max-width: 768px) {
@@ -157,6 +165,10 @@
                 margin-top: 10px;
                 flex-direction: column;
                 gap: 10px;
+            }
+
+            .order-details {
+                text-align: left;
             }
         }
     </style>

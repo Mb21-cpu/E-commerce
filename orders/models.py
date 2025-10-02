@@ -6,6 +6,7 @@ class Order(models.Model):
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
     customer_email = models.EmailField()
     shipping_address = models.TextField()
+    stripe_checkout_session_id = models.CharField(max_length=250, null=True, blank=True, unique=True)
     total_paid = models.DecimalField(max_digits=10, decimal_places=2)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)

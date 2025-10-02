@@ -124,14 +124,17 @@
             <ul>
                 {% if user.is_authenticated %}
                 <li>{{ user.username }}</li>
+                <li><a href="{% url 'contact' %}">Contacto</a></li>
+
                 <li><a href="{% url 'purchase_history' %}">Mi Historial</a></li>
+                                <li>
+                    <a href="/cart/">Carrito (<span id="cart-count" hx-get="{% url 'get_cart_count' %}" hx-trigger="updateCart from:body" hx-swap="innerHTML">{{ cart_count|default:0 }}</span>)</a>
+                </li>
                 <li><a href="{% url 'logout' %}">Cerrar Sesión</a></li>
                 {% else %}
                 <li><a href="/accounts/login/">Iniciar Sesión</a></li>
                 {% endif %}
-                <li>
-                    <a href="/cart/">Carrito (<span id="cart-count" hx-get="{% url 'get_cart_count' %}" hx-trigger="updateCart from:body" hx-swap="innerHTML">{{ cart_count|default:0 }}</span>)</a>
-                </li>
+
             </ul>
         </nav>
     </header>

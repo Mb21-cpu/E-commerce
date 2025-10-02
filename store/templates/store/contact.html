@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+
+{% block title %}Contacto{% endblock %}
+
+{% block content %}
+    <div class="elegant-container animate__animated animate__fadeIn">
+        <div class="contact-content">
+            <h1 class="main-title animate__animated animate__fadeInDown">¡Nos encantaría escucharte! 🗣️</h1>
+            <p class="intro-text animate__animated animate__fadeInUp">Tus opiniones son muy importantes para nosotros. No dudes en contactarnos para cualquier consulta, sugerencia o comentario. Estamos aquí para ayudarte.</p>
+
+            <div class="contact-grid">
+                <div class="contact-card animate__animated animate__fadeInLeft">
+                    <h2>Información de Contacto</h2>
+                    <div class="contact-info">
+                        <p><strong>Email:</strong> contacto@omnistore.com</p>
+                        <p><strong>Teléfono:</strong> +1 (555) 123-4567</p>
+                        <p><strong>Dirección:</strong> 123 Calle Ficticia, Ciudad, País</p>
+                    </div>
+                </div>
+
+                <div class="contact-card animate__animated animate__fadeInRight">
+                    <h2>Envíanos un Mensaje</h2>
+                    <form action="#" method="post" class="contact-form">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="name">Nombre:</label>
+                            <input type="text" id="name" name="name" required class="form-control" placeholder="Tu nombre completo">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email:</label>
+                            <input type="email" id="email" name="email" required class="form-control" placeholder="tu.email@ejemplo.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="message">Mensaje:</label>
+                            <textarea id="message" name="message" rows="5" required class="form-control" placeholder="Escribe aquí tu opinión..."></textarea>
+                        </div>
+                        <button type="submit" class="submit-btn checkout-btn">Enviar Mensaje</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #723D8A; /* Un púrpura oscuro más elegante */
+            --secondary-color: #E75A7C; /* Un rojo coral vibrante */
+            --background-start: #2B2D42; /* Azul oscuro */
+            --background-end: #3D4A69; /* Azul más claro */
+            --card-bg: rgba(255, 255, 255, 0.2); /* Transparencia para efecto de vidrio */
+            --border-color: rgba(255, 255, 255, 0.4);
+            --text-color: #f7f9fc;
+            --sub-text-color: #e0e0e0;
+            --light-border: rgba(255, 255, 255, 0.1);
+            --shadow-color: rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--background-start), var(--background-end));
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-color);
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .elegant-container {
+            background-color: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 25px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 15px 40px var(--shadow-color);
+            padding: 60px;
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .contact-content {
+            width: 100%;
+        }
+
+        .main-title {
+            color: var(--text-color);
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 3.5em;
+            font-weight: 700;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .intro-text {
+            text-align: center;
+            font-size: 1.2em;
+            color: var(--sub-text-color);
+            margin-bottom: 50px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            font-weight: 400;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+        }
+
+        .contact-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s ease-in-out;
+            height: fit-content;
+        }
+
+        .contact-card:hover {
+            transform: translateY(-12px);
+            box-shadow: 0 18px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .contact-card h2 {
+            color: var(--secondary-color);
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-size: 2em;
+            border-bottom: 2px solid var(--light-border);
+            padding-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .contact-info p {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .form-group {
+            margin-bottom: 30px;
+        }
+
+        .contact-form label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 12px;
+            color: var(--text-color);
+            font-size: 1.1em;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 18px 0;
+            background-color: transparent;
+            border: none;
+            border-bottom: 3px solid var(--light-border);
+            color: var(--text-color);
+            font-family: 'Poppins', sans-serif;
+            font-weight: 400;
+            font-size: 1em;
+            transition: border-color 0.4s, box-shadow 0.4s, transform 0.2s;
+        }
+
+        .form-control::placeholder {
+            color: var(--sub-text-color);
+            font-style: italic;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-bottom-color: var(--primary-color);
+            box-shadow: 0 5px 15px rgba(114, 61, 138, 0.3); /* Glow effect */
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.3em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s;
+            font-weight: 600;
+            letter-spacing: 1px;
+            box-shadow: 0 6px 15px rgba(231, 90, 124, 0.4);
+        }
+
+        .submit-btn:hover {
+            background-color: #c94a6b;
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 20px rgba(231, 90, 124, 0.6);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 992px) {
+            .contact-grid {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+            .elegant-container {
+                padding: 40px;
+            }
+            .main-title {
+                font-size: 2.5em;
+            }
+        }
+    </style>
+{% endblock %}

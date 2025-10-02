@@ -153,3 +153,25 @@ EMAIL_HOST_PASSWORD = 'naeo cqnl lvug qfvj' # <--- CAMBIA ESTO (usa una contrase
 
 # Puedes usar esta configuración para probar el correo en la consola
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Definición de una tarifa de envío fija para el MVP.
+SHIPPING_FEE = 5.00
+
+# --------------------------------------------------------------------------
+# CONFIGURACIÓN DE PAGO - SPRINT 2 (Stripe)
+# --------------------------------------------------------------------------
+
+# Clave de API Secreta de Stripe (Modo Testing)
+# DEBES REEMPLAZAR ESTE VALOR con tu clave de prueba (ej: sk_test_...)
+STRIPE_SECRET_KEY = 'sk_test_51SDolF3ElVeomltG3CnOJsud9qu4on9E3BsJnFw7EA04dbCxglKuqk1dTmzRdvKknwRDN3Xisnq1aBIHqyUDAJb80059ZuqbO4'
+
+# Clave de API Pública de Stripe (Modo Testing)
+# DEBES REEMPLAZAR ESTE VALOR con tu clave publicable (ej: pk_test_...)
+STRIPE_PUBLIC_KEY = 'pk_test_51SDolF3ElVeomltG9wFzIlcUo9RI89KxPuzj2MPsxDlIzPqMShOjwOYJ4Q3xlmdppnYR0ShFwzsHoKzzoUwcOC8Z00vw9OevDs'
+
+# Clave Secreta del Webhook de Stripe
+# Este es un valor que Stripe genera al configurar tu webhook
+STRIPE_WEBHOOK_SECRET = 'WH_CLAVE_SECRETA_DEL_WEBHOOK'
+
+# Moneda base de la tienda (ej: 'usd', 'eur', 'mxn')
+DEFAULT_CURRENCY = 'usd'

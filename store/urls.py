@@ -1,35 +1,34 @@
-from django.urls import path, include
+from django.urls import path
 from . import views
 
 urlpatterns = [
-    # --------------------
-    # Vistas de Productos y Catálogo
-    # --------------------
+    # Rutas Generales
     path('', views.product_list_view, name='product_list'),
-    path('product/<slug:slug>/', views.product_detail, name='product_detail'),
-    path('cart/count/', views.get_cart_count_view, name='get_cart_count'),
+    path('contact/', views.contact_view, name='contact'),
 
-    # --------------------
-    # Vistas del Carrito
-    # --------------------
+    # Ruta de Detalle de Producto usando SLUG
+    path('product/<slug:slug>/', views.product_detail, name='product_detail'),
+
+    # Rutas de Carrito
     path('cart/', views.cart_detail, name='cart_detail'),
     path('cart/add/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
-    path('cart/update/<int:product_id>/', views.update_cart, name='update_cart'),
     path('cart/remove/<int:product_id>/', views.remove_from_cart, name='remove_from_cart'),
+    path('cart/update/<int:product_id>/', views.update_cart, name='update_cart'),
+    path('cart/count/', views.get_cart_count_view, name='get_cart_count'),
 
-    # --------------------
-    # Vistas de Compra y Historial
-    # --------------------
+    # Rutas de Checkout y Órdenes
     path('checkout/', views.checkout, name='checkout'),
-    path('purchase_history/', views.purchase_history_view, name='purchase_history'),
-    path('delete_purchase_history/', views.delete_purchase_history, name='delete_purchase_history'),
+    path('history/', views.purchase_history_view, name='purchase_history'),
+    path('history/delete/', views.delete_purchase_history, name='delete_history'),
 
-    # --------------------
-    # Vistas de Autenticación
-    # --------------------
-    path('signup/', views.SignUpView.as_view(), name='signup'),
-    path('password_reset/', views.password_reset_request, name='password_reset_request'),
-    path('password_reset/done/', views.password_reset_done, name='password_reset_done'),
-    path('password_reset/confirm/<uidb64>/<token>/', views.password_reset_confirm, name='password_reset_confirm'),
-    path('password_reset/complete/', views.password_reset_complete, name='password_reset_complete'),
+    path('order/<int:order_id>/', views.order_detail, name='order_detail'),
+
+    # -----------------------------------------------------
+    # RUTAS DE INTEGRACIÓN CON STRIPE (NUEVAS)
+    # -----------------------------------------------------
+    path('payment/success/', views.payment_success, name='payment_success'),
+    path('payment/cancel/', views.payment_cancel, name='payment_cancel'),
+
+    # Ruta del Webhook (DEBE SER ACCESIBLE SIN CSRF)
+    path('webhook/stripe/', views.stripe_webhook, name='stripe_webhook'),
 ]
