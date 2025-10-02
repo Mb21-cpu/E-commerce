@@ -17,7 +17,8 @@ from decimal import Decimal
 from django.core.mail import send_mail
 import traceback  # Para depuración
 
-from .models import Product, ContactMessage
+# IMPORTANTE: Asegúrate de que Category y Product estén importados
+from .models import Product, ContactMessage, Category
 from orders.models import Order, OrderItem
 from django.contrib.auth import get_user_model
 
@@ -37,17 +38,33 @@ def get_cart_count(request):
     return sum(item['quantity'] for item in cart.values())
 
 
-def product_list_view(request):
+def product_list(request, category_slug=None):
     """
-    Muestra el catálogo de todos los productos.
+    Muestra el catálogo de productos, opcionalmente filtrado por categoría (category_slug).
     """
-    products = Product.objects.all()
+    # 1. Obtener todas las categorías para el menú de navegación (base.html)
+    categories = Category.objects.all()
+
+    # 2. Preparar los productos
+    products = Product.objects.filter(available=True)
+    current_category = None
+
+    # 3. Filtrar por categoría si se proporciona un slug
+    if category_slug:
+        # Aseguramos que la categoría exista, si no, devuelve un 404
+        current_category = get_object_or_404(Category, slug=category_slug)
+        products = products.filter(category=current_category)
+
     cart_count = get_cart_count(request)
+
     context = {
-        'products': products,
+        'categories': categories,  # Lista de todas las categorías
+        'products': products,  # Lista de productos (filtrados o todos)
+        'current_category': current_category,  # Categoría seleccionada (para el título y el menú activo)
         'cart_count': cart_count,
         'stripe_public_key': settings.STRIPE_PUBLIC_KEY
     }
+
     return render(request, 'store/product_list.html', context)
 
 
@@ -58,9 +75,12 @@ def product_detail(request, slug):
     # Buscar por slug en lugar de ID
     product = get_object_or_404(Product, slug=slug, available=True)
     cart_count = get_cart_count(request)
+    categories = Category.objects.all()
+
     context = {
         'product': product,
         'cart_count': cart_count,
+        'categories': categories,
     }
     return render(request, 'store/product_detail.html', context)
 
@@ -95,7 +115,8 @@ def add_to_cart(request, product_id):
     if product_id_str not in cart:
         cart[product_id_str] = {'quantity': 1, 'price': str(product.price), 'name': product.name}
     else:
-        if cart[product_id_str]['quantity'] >= product.stock:
+        current_quantity = cart[product_id_str]['quantity']
+        if current_quantity >= product.stock:
             message_html = f'<div class="floating-message error">¡No hay más stock para {product.name}!</div>'
             response = HttpResponse(message_html)
             response['HX-Trigger'] = 'updateCart'
@@ -106,6 +127,7 @@ def add_to_cart(request, product_id):
     request.session['cart'] = cart
     item_count = sum(item['quantity'] for item in cart.values())
 
+    # Usamos hx-swap="none" en el botón, por lo que este HTML solo se usa para el mensaje flotante
     message_html = f'<div class="floating-message">¡Añadiste {product.name}! Llevas {item_count} productos.</div>'
     response = HttpResponse(message_html)
     response['HX-Trigger'] = 'updateCart'
@@ -123,16 +145,27 @@ def cart_detail(request):
     if not request.user.is_authenticated:
         messages.info(request, "¡Regístrate o inicia sesión para guardar tu carrito y finalizar tu compra!")
     for key, item in cart.items():
+        try:
+            # Intentamos obtener el producto para tener la imagen o más detalles
+            product = Product.objects.get(id=key)
+            item['image_url'] = product.image.url if product.image else None
+        except Product.DoesNotExist:
+            item['image_url'] = None
+
         item['product_id'] = key
         item_total = float(item['price']) * item['quantity']
         cart_total += item_total
         item['total'] = item_total
         cart_items.append(item)
+
     cart_count = get_cart_count(request)
+    categories = Category.objects.all()
+
     context = {
         'cart_items': cart_items,
         'cart_total': cart_total,
         'cart_count': cart_count,
+        'categories': categories,
     }
     return render(request, 'store/cart_detail.html', context)
 
@@ -143,15 +176,22 @@ def update_cart(request, product_id):
     """
     cart = request.session.get('cart', {})
     product_id_str = str(product_id)
+    product = get_object_or_404(Product, id=product_id)
 
     if product_id_str in cart:
         action = request.POST.get('action')
+        current_quantity = cart[product_id_str]['quantity']
+
         if action == 'increase':
-            cart[product_id_str]['quantity'] += 1
-        elif action == 'decrease' and cart[product_id_str]['quantity'] > 1:
+            if current_quantity < product.stock:
+                cart[product_id_str]['quantity'] += 1
+            else:
+                messages.error(request, f"Límite de stock ({product.stock}) alcanzado para {product.name}.")
+        elif action == 'decrease' and current_quantity > 1:
             cart[product_id_str]['quantity'] -= 1
 
         request.session['cart'] = cart
+        request.session.modified = True
 
     return redirect('cart_detail')
 
@@ -166,6 +206,7 @@ def remove_from_cart(request, product_id):
     if product_id_str in cart:
         del cart[product_id_str]
         request.session['cart'] = cart
+        request.session.modified = True
         messages.success(request, "Producto eliminado del carrito.")
 
     return redirect('cart_detail')
@@ -186,8 +227,9 @@ def checkout(request):
         messages.error(request, "Tu carrito está vacío.")
         return redirect('product_list')
 
-    subtotal = sum(decimal.Decimal(item['price']) * item['quantity'] for item in cart.values())
-    shipping_fee = decimal.Decimal(str(settings.SHIPPING_FEE))
+    # Convertir a Decimal para cálculos precisos
+    subtotal = sum(Decimal(item['price']) * item['quantity'] for item in cart.values())
+    shipping_fee = Decimal(str(settings.SHIPPING_FEE))
     total_con_envio = subtotal + shipping_fee
 
     if request.method == 'POST':
@@ -199,10 +241,10 @@ def checkout(request):
 
         # 1. Preparar items para Stripe
         line_items = []
-        for product_id, item_data in cart.items():
-            product = get_object_or_404(Product, id=product_id)
+        for product_id_str, item_data in cart.items():
+            product = get_object_or_404(Product, id=int(product_id_str))
 
-            # Validación de stock, aunque se vuelve a validar en el webhook, es bueno chequear aquí
+            # Validación de stock
             if product.stock < item_data['quantity']:
                 messages.error(request, f"Stock insuficiente para {product.name}.")
                 return redirect('cart_detail')
@@ -210,17 +252,21 @@ def checkout(request):
             line_items.append({
                 'price_data': {
                     'currency': settings.DEFAULT_CURRENCY,
-                    'unit_amount': int(decimal.Decimal(item_data['price']) * 100),  # Stripe usa centavos
+                    # Stripe usa centavos, por eso multiplicamos por 100 y convertimos a int
+                    'unit_amount': int(Decimal(item_data['price']) * 100),
                     'product_data': {
                         'name': item_data['name'],
-                        'description': product.description[:50],  # Breve descripción
-                        # Aquí puedes añadir la URL de una imagen si tienes una ruta absoluta o pública
+                        'description': product.description[:50] if product.description else 'Producto de la tienda',
+                        # CRÍTICO: PASAR EL ID DEL PRODUCTO DE DJANGO EN LA METADATA
+                        'metadata': {
+                            'product_id': product_id_str,
+                        }
                     },
                 },
                 'quantity': item_data['quantity'],
             })
 
-        # 2. Agregar el costo de envío como un line_item
+        # 2. Agregar el costo de envío como un line_item (si es mayor a cero)
         if shipping_fee > 0:
             line_items.append({
                 'price_data': {
@@ -249,7 +295,7 @@ def checkout(request):
                 metadata={
                     'customer_id': request.user.id,
                     'shipping_address': address,
-                    # Aquí podemos guardar todo el carrito como JSON si fuera necesario
+                    # Ya no necesitamos guardar todo el carrito aquí, usamos la metadata del line_item
                 },
                 customer_email=request.user.email,
             )
@@ -263,6 +309,8 @@ def checkout(request):
 
     # Lógica para GET
     cart_count = get_cart_count(request)
+    categories = Category.objects.all()
+
     context = {
         'cart_items': cart.values(),
         'subtotal': subtotal,
@@ -270,6 +318,7 @@ def checkout(request):
         'cart_total': total_con_envio,
         'cart_count': cart_count,
         'stripe_public_key': settings.STRIPE_PUBLIC_KEY,
+        'categories': categories,
     }
     return render(request, 'store/checkout.html', context)
 
@@ -280,8 +329,11 @@ def send_order_confirmation_email(order):
     Función de ayuda para enviar un correo de confirmación al cliente.
     """
     subject = f'Confirmación de tu compra #{order.id}'
+    # Usar el nombre de usuario del cliente si está disponible, si no, usar el correo
+    customer_identifier = order.customer.username if order.customer else order.customer_email
+
     message = (
-        f'Hola {order.customer.username},\n\n'
+        f'Hola {customer_identifier},\n\n'
         f'¡Gracias por tu compra! Tu orden #{order.id} ha sido confirmada y tu pago ha sido procesado exitosamente.\n'
         f'Tu pedido será enviado a la siguiente dirección:\n'
         f'{order.shipping_address}\n\n'
@@ -294,11 +346,10 @@ def send_order_confirmation_email(order):
     recipient_list = [order.customer_email]
 
     try:
-        # Usa el fail_silently=True si quieres que los errores de correo no detengan la aplicación
+        # Asegúrate de que settings.EMAIL_HOST_USER esté configurado
         send_mail(subject, message, from_email, recipient_list, fail_silently=False)
     except Exception as e:
         print(f"Error al enviar el correo de confirmación: {e}")
-        # Aquí podrías querer registrar el error o intentar un reenvío.
 
 
 # Vistas de Redirección de Stripe (NUEVAS)
@@ -309,31 +360,39 @@ def payment_success(request):
     """
     Esta vista crea la orden localmente si el pago de Stripe es exitoso
     y envía un correo de confirmación.
+
+    CORRECCIÓN CRÍTICA: Se modificó la lógica para usar el product_id
+    guardado en la metadata del line item de Stripe, en lugar de confiar
+    en el nombre del producto, lo que es mucho más robusto.
     """
     session_id = request.GET.get('session_id')
     if not session_id:
         messages.error(request, "No se encontró ID de sesión de Stripe.")
         return redirect('purchase_history')
 
+    # Evita que una orden se cree dos veces si el usuario refresca la página
+    # Se debe verificar si el objeto Order ya fue creado
     if Order.objects.filter(stripe_checkout_session_id=session_id).exists():
-        messages.info(request, "Esta orden ya ha sido registrada.")
-        return redirect('purchase_history')
+        order = Order.objects.get(stripe_checkout_session_id=session_id)
+        messages.info(request, f"Esta orden (#{order.id}) ya ha sido registrada.")
+        # Simplemente redirigimos al detalle de la orden existente
+        return redirect('order_detail', order_id=order.id)
+
 
     try:
-        # Intenta recuperar la sesión de Stripe (puede fallar si el ID es inválido o no existe)
+        # 1. Recuperar la sesión de Stripe
         session = stripe.checkout.Session.retrieve(session_id)
 
-        # Si el pago fue exitoso, creamos la orden localmente.
         if session.payment_status == 'paid':
             user_id = session.metadata.get('customer_id')
             shipping_address = session.metadata.get('shipping_address')
-            # Usar 'amount_total' de la sesión de Stripe
-            total_paid = decimal.Decimal(session.amount_total / 100)
+            # Stripe amount_total está en centavos. Dividimos por 100 para obtener el valor correcto en Decimal
+            total_paid = Decimal(session.amount_total / 100)
 
             User = get_user_model()
             customer = User.objects.get(id=user_id)
 
-            # 1. Crear la Orden principal
+            # 2. Crear la Orden principal
             order = Order.objects.create(
                 customer=customer,
                 customer_email=session.customer_details['email'],
@@ -342,30 +401,37 @@ def payment_success(request):
                 stripe_checkout_session_id=session_id
             )
 
-            # 2. Obtener los productos de la sesión de Stripe y crear los OrderItems
-            # NOTA: session.line_items no siempre está cargado, es mejor usar Session.list_line_items
-            line_items = stripe.checkout.Session.list_line_items(session_id, limit=100)
+            # 3. Obtener los productos de la sesión de Stripe y crear los OrderItems
+            # NOTA: Debemos expandir los line_items para obtener la metadata del producto
+            # Se usa `expand=['data.price.product']` para que Stripe incluya los detalles del producto
+            line_items = stripe.checkout.Session.list_line_items(
+                session_id,
+                expand=['data.price.product'], # Expandir para acceder a la metadata del producto
+                limit=100
+            )
 
             for item in line_items.data:
-                # Excluimos el costo de envío
-                if 'Costo de Envío' in item.description:
+                # Omitir el item de envío buscando la metadata del producto, que solo lo tienen los productos reales
+                product_metadata = item.price.product.metadata if item.price.product and item.price.product.metadata else {}
+                product_id_str = product_metadata.get('product_id')
+
+                if not product_id_str:
+                    # Si no hay product_id, asumimos que es el costo de envío o un item no mapeado
                     continue
 
                 try:
-                    # Buscamos el producto por el nombre guardado en Stripe
-                    product_name = item.description
-                    product = Product.objects.get(name=product_name)
+                    # CRÍTICO: OBTENER EL ID DE DJANGO DE LA METADATA DE STRIPE
+                    product = Product.objects.get(id=int(product_id_str))
 
                     item_quantity = item.quantity
-                    # item.amount_total es el total del line_item (precio * cantidad)
-                    item_price_total = decimal.Decimal(item.amount_total / 100)
+                    item_price_total = Decimal(item.amount_total / 100)
                     item_price = item_price_total / item_quantity  # Precio unitario
 
-                    # 3. Descontar stock
+                    # 4. Descontar stock
                     product.stock -= item_quantity
                     product.save()
 
-                    # 4. Crear el Item de la Orden
+                    # 5. Crear el Item de la Orden
                     OrderItem.objects.create(
                         order=order,
                         product=product,
@@ -373,29 +439,37 @@ def payment_success(request):
                         quantity=item_quantity
                     )
                 except Product.DoesNotExist:
-                    print(f"Advertencia: Producto '{product_name}' no encontrado. OrdenItem no creado.")
+                    # Esto debe ser muy raro si la metadata fue bien configurada
+                    print(f"Advertencia: Producto con ID '{product_id_str}' no encontrado. OrdenItem no creado.")
+                    continue
+                except Exception as e:
+                    print(f"Error al procesar OrderItem: {e}")
                     continue
 
-            # 5. Vaciar el carrito de la sesión
+            # 6. Vaciar el carrito de la sesión
+            # Esto debe hacerse AHORA, después de que todos los items se hayan guardado correctamente
             if 'cart' in request.session:
                 del request.session['cart']
                 request.session.modified = True
 
-            # 6. Envío de Correo
+            # 7. Envío de Correo
             send_order_confirmation_email(order)
 
             messages.success(request,
                              f"¡Pago exitoso! Tu orden #{order.id} ha sido registrada y se ha enviado un correo de confirmación.")
-            return redirect('purchase_history')
+            return redirect('order_detail', order_id=order.id) # Redirigir al detalle de la orden
         else:
+            # El pago no está en estado 'paid'
             messages.error(request, "El pago no se completó. Por favor, inténtalo de nuevo.")
             return redirect('checkout')
 
-    # Manejo de cualquier error de la API de Stripe o de red.
+    except stripe.error.StripeError as e:
+        messages.error(request, f"Error de Stripe durante la verificación: {str(e)}")
+        traceback.print_exc()
+        return redirect('checkout')
     except Exception as e:
         messages.error(request, f"Ocurrió un error inesperado durante la verificación del pago: {str(e)}")
-        # Para depuración, imprime el error completo
-        traceback.print_exc()
+        tracebox.print_exc()
         return redirect('checkout')
 
 
@@ -411,9 +485,12 @@ def payment_cancel(request):
 @csrf_exempt
 def stripe_webhook(request):
     """
-    Esta vista NO SE UTILIZARÁ en tu entorno local debido a la falta de Stripe CLI.
-    La mantenemos para futuras implementaciones en producción.
+    Esta vista maneja los eventos de Stripe de forma asíncrona.
+    En un entorno de producción, se usaría para crear la orden
+    en lugar de 'payment_success' para mayor robustez.
     """
+    # Esta vista debe verificar la firma del webhook y procesar eventos.
+    # Por ahora, solo es un esqueleto. En el flujo actual, la orden se crea en payment_success.
     return HttpResponse(status=200)
 
 
@@ -423,14 +500,14 @@ def order_detail(request, order_id):
     Muestra los detalles de una orden específica (solo si pertenece al usuario).
     """
     order = get_object_or_404(Order, id=order_id, customer=request.user)
-    # Los items de la orden se obtienen automáticamente gracias a related_name en OrderItem
-    items = OrderItem.objects.filter(order=order)
+    # Ya no se necesita el filtro adicional, el template usa order.items.all
     cart_count = get_cart_count(request)
+    categories = Category.objects.all()
 
     context = {
         'order': order,
-        'items': items,
         'cart_count': cart_count,
+        'categories': categories,
     }
     return render(request, 'store/order_detail.html', context)
 
@@ -440,12 +517,14 @@ def purchase_history_view(request):
     """
     Muestra el historial de compras del usuario autenticado.
     """
-    # Se corrige el nombre del campo a '-created' para ordenar por fecha de creación
     orders = Order.objects.filter(customer=request.user).order_by('-created')
     cart_count = get_cart_count(request)
+    categories = Category.objects.all()
+
     context = {
         'orders': orders,
         'cart_count': cart_count,
+        'categories': categories,
     }
     return render(request, 'store/purchase_history.html', context)
 
@@ -458,6 +537,9 @@ def delete_purchase_history(request):
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
         if user_id:
+            # CORRECCIÓN: Usar 'customer' o 'user' según tu modelo Order.
+            # Según tu modelo, el campo es `customer` (o `user` en el modelo proporcionado).
+            # Me guío por la vista `purchase_history_view` que usa `customer=request.user`.
             Order.objects.filter(customer_id=user_id).delete()
             messages.success(request, "El historial de compras del usuario ha sido eliminado.")
             return redirect('purchase_history')
@@ -530,18 +612,16 @@ def contact_view(request):
         email = request.POST.get('email')
         message = request.POST.get('message')
 
-        # Crea y guarda el nuevo mensaje en la base de datos
         ContactMessage.objects.create(name=name, email=email, message=message)
-
-        # Muestra un mensaje de éxito
         messages.success(request,
                          '¡Gracias! Tu mensaje ha sido enviado correctamente y nos pondremos en contacto contigo pronto.')
-
-        # Redirige al usuario a la misma página para evitar envíos duplicados
         return redirect('contact')
 
     cart_count = get_cart_count(request)
+    categories = Category.objects.all()
+
     context = {
         'cart_count': cart_count,
+        'categories': categories,
     }
     return render(request, 'store/contact.html', context)

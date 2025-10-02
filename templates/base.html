@@ -17,10 +17,11 @@
             --color-white: #ffffff;
             --color-gray: #f4f4f4;
             --color-dark-gray: #333;
+            --color-accent: #ffb800; /* Dorado para acentos */
         }
 
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Inter', Arial, sans-serif;
             margin: 0;
             background-color: var(--color-gray);
             color: var(--color-dark-gray);
@@ -31,6 +32,9 @@
             color: var(--color-white);
             padding: 1rem 2rem;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
         nav {
@@ -67,14 +71,87 @@
         }
 
         nav ul a:hover {
-            border-bottom: 2px solid var(--color-white);
+            border-bottom: 2px solid var(--color-accent);
         }
 
-        main {
+        /* Contenedor principal para la estructura de dos columnas */
+        .content-wrapper {
+            display: flex;
+            gap: 2rem;
             padding: 2rem;
             min-height: calc(100vh - 150px);
+            max-width: 1200px; /* Limitar el ancho en escritorio */
+            margin: 0 auto;
         }
 
+        /* Estilos para el Sidebar de Categorías */
+        aside.sidebar {
+            flex: 0 0 250px; /* Ancho fijo para el sidebar en desktop */
+            background-color: var(--color-white);
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            align-self: flex-start; /* Se pega a la parte superior */
+        }
+
+        .category-list h3 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+            color: var(--color-blue);
+            border-bottom: 2px solid var(--color-accent);
+            padding-bottom: 0.5rem;
+        }
+
+        .category-list ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .category-list li {
+            margin-bottom: 0.5rem;
+        }
+
+        .category-list a {
+            display: block;
+            padding: 0.5rem 0.75rem;
+            text-decoration: none;
+            color: var(--color-dark-gray);
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .category-list a:hover {
+            background-color: var(--color-gray);
+        }
+
+        .category-list .active {
+            background-color: var(--color-blue);
+            color: var(--color-white);
+            font-weight: bold;
+        }
+
+        /* Contenido principal */
+        main {
+            flex-grow: 1;
+            padding: 0; /* Ya tiene padding del content-wrapper */
+        }
+
+        /* Responsive para móvil */
+        @media (max-width: 768px) {
+            .content-wrapper {
+                flex-direction: column; /* Apila sidebar y contenido */
+                padding: 1rem;
+            }
+
+            aside.sidebar {
+                flex: 0 0 auto; /* Permite que el sidebar ocupe todo el ancho */
+                width: 100%;
+                margin-bottom: 1rem;
+            }
+        }
+
+        /* Estilos para el mensaje flotante */
         .messages {
             list-style: none;
             padding: 1rem;
@@ -85,15 +162,6 @@
             margin-bottom: 1rem;
         }
 
-        footer {
-            background-color: var(--color-dark-gray);
-            color: var(--color-white);
-            text-align: center;
-            padding: 1rem;
-            margin-top: 2rem;
-        }
-
-        /* Estilos para el mensaje flotante */
         .floating-message {
             position: fixed;
             bottom: 20px;
@@ -115,47 +183,104 @@
             90% { opacity: 1; transform: translate(-50%, 0); }
             100% { opacity: 0; transform: translate(-50%, 20px); }
         }
+
+        footer {
+            background-color: var(--color-dark-gray);
+            color: var(--color-white);
+            text-align: center;
+            padding: 1rem;
+            margin-top: 2rem;
+        }
+
+        /* Estilos para el indicador de carga HTMX (El spinner) */
+        .htmx-indicator {
+            display: none;
+            animation: spin 1s linear infinite;
+        }
+
+        .htmx-request .htmx-indicator {
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* La clase para ocultar el contenido mientras carga */
+        .htmx-request.product-card > :not(.htmx-indicator) {
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
     <header>
         <nav>
-            <h1><a href="/">OmniStorer🌌</a></h1>
+            <h1><a href="{% url 'product_list' %}">OmniStorer🌌</a></h1>
             <ul>
                 {% if user.is_authenticated %}
                 <li>{{ user.username }}</li>
                 <li><a href="{% url 'contact' %}">Contacto</a></li>
-
                 <li><a href="{% url 'purchase_history' %}">Mi Historial</a></li>
-                                <li>
-                    <a href="/cart/">Carrito (<span id="cart-count" hx-get="{% url 'get_cart_count' %}" hx-trigger="updateCart from:body" hx-swap="innerHTML">{{ cart_count|default:0 }}</span>)</a>
+                <li>
+                    <!-- FIX: El hx-trigger es correcto: carga al inicio y se actualiza al recibir 'updateCart' -->
+                    <a href="{% url 'cart_detail' %}">Carrito (<span id="cart-count" hx-get="{% url 'get_cart_count' %}" hx-trigger="load, updateCart from:body" hx-swap="innerHTML">{{ cart_count|default:0 }}</span>)</a>
                 </li>
                 <li><a href="{% url 'logout' %}">Cerrar Sesión</a></li>
                 {% else %}
                 <li><a href="/accounts/login/">Iniciar Sesión</a></li>
                 {% endif %}
-
             </ul>
         </nav>
     </header>
 
-    <main>
-        {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-                <li class="{{ message.tags }}">{{ message }}</li>
-            {% endfor %}
-        </ul>
+    <div class="content-wrapper">
+
+        <!-- Sidebar para Categorías (Solo se muestra si la vista pasa 'categories') -->
+        {% if categories %}
+        <aside class="sidebar">
+            <div class="category-list">
+                <h3>🛍️ Categorías</h3>
+                <ul>
+                    <li>
+                        <!-- Enlace para mostrar todos los productos -->
+                        <a href="{% url 'product_list' %}" class="{% if not current_category %}active{% endif %}">
+                            Todos los productos
+                        </a>
+                    </li>
+                    {% for category in categories %}
+                        <li>
+                            <!-- El enlace apunta a la URL con el slug de la categoría -->
+                            <a href="{% url 'product_list_by_category' category.slug %}"
+                               class="{% if current_category and current_category.slug == category.slug %}active{% endif %}">
+                                {{ category.name }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </aside>
         {% endif %}
 
-        {% block content %}
-        {% endblock %}
-    </main>
+        <main>
+            {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
 
     <footer>
         <p>&copy; 2025 Derechos reservados MB.SA</p>
     </footer>
 
+    <!-- Contenedor para mensajes flotantes inyectados por HTMX -->
     <div id="floating-message-container"></div>
 
 </body>
