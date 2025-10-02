@@ -1,104 +1,183 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load static %}
 
 {% block content %}
-<style>
-    .product-list-container {
-        padding: 2rem;
-        background-color: var(--color-white);
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        margin-top: 2rem;
-    }
 
-    .product-list-container h1 {
-        text-align: center;
-        color: var(--color-blue);
-        margin-bottom: 2rem;
-    }
+    <h2 class="title-heading">
+        <!-- Título que cambia dependiendo si estamos filtrando una categoría o no -->
+        {% if current_category %}
+            {{ current_category.name }}
+        {% else %}
+            Catálogo Completo
+        {% endif %}
+    </h2>
 
-    .product-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 2rem;
-    }
-
-    .product-item {
-        background-color: var(--color-gray);
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 1.5rem;
-        text-align: center;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .product-item:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    }
-
-    .product-item img {
-        width: 100%;
-        height: 200px; /* New: Fixed height for consistency */
-        object-fit: cover; /* New: Prevents distortion by cropping images */
-        border-radius: 6px;
-        margin-bottom: 1rem;
-    }
-
-    .product-item h3 {
-        margin: 0.5rem 0;
-    }
-
-    .product-item h3 a {
-        color: var(--color-dark-gray);
-        text-decoration: none;
-        font-size: 1.2rem;
-    }
-
-    .product-item h3 a:hover {
-        text-decoration: underline;
-        color: var(--color-blue);
-    }
-
-    .product-item p {
-        color: var(--color-blue);
-        font-size: 1.2rem;
-        font-weight: bold;
-    }
-
-    .add-to-cart-button {
-        background-color: var(--color-blue);
-        color: var(--color-white);
-        border: none;
-        padding: 0.8rem 1.5rem;
-        font-size: 1rem;
-        font-weight: bold;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-        margin-top: 1rem;
-    }
-
-    .add-to-cart-button:hover {
-        background-color: #003366;
-    }
-</style>
-
-<div class="product-list-container">
-    <h1>Catálogo de Productos</h1>
     <div class="product-grid">
         {% for product in products %}
-        <div class="product-item">
-            <a href="{% url 'product_detail' product.slug %}">
-                <img src="{{ product.image.url }}" alt="{{ product.name }}">
-            </a>
-            <h3><a href="{% url 'product_detail' product.slug %}">{{ product.name }}</a></h3>
-            <p>${{ product.price }}</p>
-            <form hx-post="{% url 'add_to_cart' product.id %}" hx-target="#floating-message-container" hx-swap="innerHTML">
-                {% csrf_token %}
-                <button type="submit" class="add-to-cart-button">Añadir al Carrito</button>
-            </form>
-        </div>
+            <div class="product-card">
+                <!-- Contenedor de Imagen -->
+                <div class="product-image-container">
+                    {% if product.image %}
+                        <!-- Asumo que el modelo Product tiene un campo 'image' con una URL -->
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+                    {% else %}
+                        <!-- Placeholder si no hay imagen (icono de caja) -->
+                        <div class="product-placeholder">📦</div>
+                    {% endif %}
+                </div>
+
+                <h3 class="product-name">
+                    <!-- Enlace al detalle del producto. Requiere la URL 'product_detail' -->
+                    <a href="{% url 'product_detail' product.slug %}">{{ product.name }}</a>
+                </h3>
+
+                <!-- Muestra la categoría del producto (útil si no estamos filtrando) -->
+                <p class="product-category">{{ product.category.name }}</p>
+
+                <div class="product-footer">
+                    <span class="product-price">${{ product.price|floatformat:2 }}</span>
+
+                    <!-- FIX CRÍTICO: Usamos un formulario HTMX para manejar CSRF y disparar la actualización -->
+                    <form hx-post="{% url 'add_to_cart' product.id %}"
+                          hx-target="#floating-message-container"
+                          hx-swap="innerHTML"
+                          hx-indicator="#loading-{{ product.id }}"
+                          class="inline-block"
+                    >
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="add-to-cart-btn"
+                                hx-on:htmx:afterRequest="
+                                    // Dispara el evento 'updateCart' en el body si la petición fue exitosa (status 200-299)
+                                    if(event.detail.successful) {
+                                        htmx.trigger(document.body, 'updateCart', {});
+                                        // La vista 'add_to_cart' debe devolver el HTML del mensaje flotante.
+                                    }
+                                ">
+                            Añadir
+                            <!-- Indicador de carga simple -->
+                            <span id="loading-{{ product.id }}" class="htmx-indicator ml-2">🔄</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        {% empty %}
+            <p class="no-products-message">¡No se encontraron productos en esta sección! Vuelva más tarde.</p>
         {% endfor %}
     </div>
-</div>
+
+    <style>
+        .title-heading {
+            font-size: 2rem;
+            color: var(--color-blue);
+            margin-bottom: 1.5rem;
+            border-bottom: 3px solid var(--color-accent);
+            padding-bottom: 0.5rem;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .product-card {
+            background-color: var(--color-white);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .product-image-container {
+            width: 100%;
+            height: 200px;
+            background-color: var(--color-gray);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1rem;
+            border-radius: 6px;
+        }
+
+        .product-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .product-placeholder {
+            font-size: 4rem;
+            color: var(--color-dark-gray);
+        }
+
+        .product-name a {
+            font-size: 1.3rem;
+            color: var(--color-dark-gray);
+            text-decoration: none;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 0.5rem;
+            transition: color 0.2s;
+        }
+
+        .product-name a:hover {
+            color: var(--color-blue);
+        }
+
+        .product-category {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 1rem;
+        }
+
+        .product-footer {
+            margin-top: auto; /* Empuja los elementos hacia abajo */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid var(--color-gray);
+        }
+
+        .product-price {
+            font-size: 1.5rem;
+            font-weight: bolder;
+            color: var(--color-blue);
+        }
+
+        .add-to-cart-btn {
+            background-color: var(--color-accent);
+            color: var(--color-blue);
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .add-to-cart-btn:hover {
+            background-color: #ffc433; /* Un poco más claro */
+            transform: translateY(-1px);
+        }
+
+        .no-products-message {
+            grid-column: 1 / -1; /* Ocupa todo el ancho de la cuadrícula */
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.2rem;
+            color: #888;
+        }
+    </style>
 {% endblock %}
