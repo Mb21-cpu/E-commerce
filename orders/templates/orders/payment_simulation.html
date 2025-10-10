@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="stripe-payment-container">
+    <div class="payment-header">
+        <h1>🧪 Simulación de Pago</h1>
+        <p>Pedido #{{ order.id }} - Total: ${{ order.total_paid }}</p>
+        <div class="test-mode-banner">
+            🧪 MODO SIMULACIÓN - Procesar pedido sin Stripe
+        </div>
+    </div>
+
+    <div class="payment-content">
+        <div class="simulation-info">
+            <h3>Información del Pedido</h3>
+            <div class="order-details">
+                <p><strong>Cliente:</strong> {{ order.customer_first_name }} {{ order.customer_last_name }}</p>
+                <p><strong>Email:</strong> {{ order.customer_email }}</p>
+                <p><strong>Total:</strong> ${{ order.total_paid }}</p>
+                <p><strong>Estado:</strong> {{ order.get_status_display }}</p>
+            </div>
+        </div>
+
+        <div class="order-summary">
+            <h3>Resumen del Pedido</h3>
+            <div class="order-items">
+                {% for item in order.items.all %}
+                <div class="order-item">
+                    <span class="item-name">{{ item.product.name }}</span>
+                    <span class="item-quantity">x{{ item.quantity }}</span>
+                    <span class="item-price">${{ item.price }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="order-total">
+                <strong>Total: ${{ order.total_paid }}</strong>
+            </div>
+        </div>
+
+        <div class="simulation-actions">
+            <h3>Acciones de Simulación</h3>
+            <p>Esta simulación procesará el pedido completo incluyendo:</p>
+            <ul>
+                <li>✅ Reducción automática de stock</li>
+                <li>✅ Limpieza del carrito</li>
+                <li>✅ Envío de email de confirmación</li>
+                <li>✅ Cambio de estado a "Completado"</li>
+            </ul>
+
+            <form method="POST">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-large">
+                    ✅ Procesar Pedido Completo
+                </button>
+            </form>
+
+            <a href="{% url 'checkout' %}" class="btn btn-secondary">
+                ↩️ Volver al Checkout
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stripe-payment-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .payment-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .test-mode-banner {
+        background: #ffeb3b;
+        color: #333;
+        padding: 1rem;
+        border-radius: 8px;
+        font-weight: bold;
+        margin: 1rem 0;
+        border: 2px dashed #ffc107;
+    }
+
+    .payment-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .simulation-info {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .order-details {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-top: 1rem;
+    }
+
+    .order-summary {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .order-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .order-total {
+        text-align: right;
+        font-size: 1.2rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid #ddd;
+        color: #27ae60;
+    }
+
+    .simulation-actions {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .simulation-actions ul {
+        text-align: left;
+        margin: 1rem 0;
+        padding-left: 1.5rem;
+    }
+
+    .simulation-actions li {
+        margin-bottom: 0.5rem;
+    }
+
+    .btn-large {
+        width: 100%;
+        padding: 1rem;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+    }
+
+    .btn-success {
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-success:hover {
+        background: #218838;
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-secondary:hover {
+        background: #545b62;
+        color: white;
+        text-decoration: none;
+    }
+</style>
+{% endblock %}

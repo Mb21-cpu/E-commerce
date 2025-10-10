@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Dirección{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h2>Eliminar Dirección</h2>
+            <div class="alert alert-warning">
+                <p>¿Estás seguro de que quieres eliminar esta dirección?</p>
+                <p><strong>{{ address.full_name }}</strong><br>
+                {{ address.street_address }}, {{ address.city }}</p>
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-danger">Sí, Eliminar</button>
+                    <a href="{% url 'address_list' %}" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+<!-- cart/partials/coupon_section.html -->
+<div class="coupon-section">
+    <h3>🎫 Cupón de Descuento</h3>
+
+    {% if coupon_success %}
+    <div class="alert alert-success">
+        {{ coupon_success }}
+    </div>
+    {% endif %}
+
+    {% if coupon_error %}
+    <div class="alert alert-error">
+        {{ coupon_error }}
+    </div>
+    {% endif %}
+
+    <!-- SECCIÓN DE PRECIOS ACTUALIZADA -->
+    <div class="price-summary mb-3 p-3 border rounded bg-light">
+        <div class="d-flex justify-content-between">
+            <span>Subtotal:</span>
+            <span>${{ cart.get_total_price }}</span>
+        </div>
+
+        {% if cart.has_discount %}
+        <div class="d-flex justify-content-between text-danger">
+            <span>Descuento ({{ cart.get_coupon.code }}):</span>
+            <span>- ${{ cart.get_discount_amount }}</span>
+        </div>
+        {% endif %}
+
+        <hr>
+        <div class="d-flex justify-content-between fw-bold fs-5">
+            <span>Total:</span>
+            <span class="text-success">${{ cart.get_total_with_discount }}</span>
+        </div>
+    </div>
+
+    {% if not cart.get_coupon %}
+    <form hx-post="{% url 'apply_coupon' %}"
+          hx-target=".coupon-section"
+          hx-swap="outerHTML"
+          class="coupon-form">
+        {% csrf_token %}
+        <div class="form-group">
+            <input type="text"
+                   name="coupon_code"
+                   placeholder="Ingresa tu código de descuento"
+                   required
+                   class="form-control"
+                   maxlength="50"
+                   autocomplete="off">
+        </div>
+        <button type="submit" class="btn btn-outline-primary">
+            🎫 Aplicar Cupón
+        </button>
+    </form>
+    {% else %}
+    <div class="applied-coupon">
+        <div class="coupon-info">
+            <strong>Cupón aplicado:</strong>
+            <span class="coupon-code">{{ cart.get_coupon.code }}</span>
+            <br>
+            <small>
+                Descuento:
+                {% if cart.get_coupon.discount_type == 'PERCENTAGE' %}
+                    {{ cart.get_coupon.discount_value }}%
+                {% else %}
+                    ${{ cart.get_coupon.discount_value }}
+                {% endif %}
+            </small>
+        </div>
+        <button hx-post="{% url 'remove_coupon' %}"
+                hx-target=".coupon-section"
+                hx-swap="outerHTML"
+                class="btn btn-sm btn-outline-danger">
+            🗑️ Remover
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Actualizar también el resumen del carrito cuando se aplica/remueve un cupón
+document.addEventListener('htmx:afterSwap', function(event) {
+    if (event.detail.target.classList.contains('coupon-section')) {
+        console.log("🔄 Actualizando resumen del carrito...");
+
+        // Forzar actualización del resumen
+        htmx.ajax('GET', window.location.href, {
+            target: '#cart-summary',
+            swap: 'innerHTML',
+            headers: {
+                'HX-Request': 'true'
+            }
+        });
+
+        // También actualizar cualquier otro elemento que muestre totales
+        const totalElements = document.querySelectorAll('[data-cart-total]');
+        totalElements.forEach(el => {
+            htmx.trigger(el, 'refresh');
+        });
+    }
+});
+</script>

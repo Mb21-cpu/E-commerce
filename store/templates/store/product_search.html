@@ -1,0 +1,540 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="search-container">
+    <div class="search-header">
+        <h1>🔍 Buscar Productos</h1>
+        
+        <!-- Formulario de búsqueda MEJORADO -->
+        <form method="get" action="{% url 'product_search' %}" class="search-form">
+            <div class="search-filters">
+                <div class="search-input-group">
+                    <input type="text"
+                           name="q"
+                           value="{{ query }}"
+                           placeholder="Buscar productos..."
+                           class="search-input">
+                    <button type="submit" class="search-btn">
+                        🔍 Buscar
+                    </button>
+                </div>
+
+                <!-- ✅ NUEVO: Filtro por categoría -->
+                <div class="category-filter">
+                    <select name="category" class="category-select">
+                        <option value="">Todas las categorías</option>
+                        {% for category in categories %}
+                        <option value="{{ category.slug }}"
+                                {% if selected_category and selected_category.slug == category.slug %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Resultados -->
+    <div class="search-results">
+        {% if query or selected_category %}
+            <div class="results-info">
+                <h2>
+                    {% if products %}
+                        📦 Encontramos {{ products|length }} producto{{ products|length|pluralize }}
+                        {% if query %}para "{{ query }}"{% endif %}
+                        {% if selected_category %}en {{ selected_category.name }}{% endif %}
+                    {% else %}
+                        😔 No encontramos productos
+                        {% if query %}para "{{ query }}"{% endif %}
+                        {% if selected_category %}en {{ selected_category.name }}{% endif %}
+                    {% endif %}
+                </h2>
+
+                <!-- ✅ NUEVO: Filtros activos -->
+                {% if query or selected_category %}
+                <div class="active-filters">
+                    {% if query %}
+                    <span class="active-filter">
+                        Búsqueda: "{{ query }}"
+                        <a href="?category={% if selected_category %}{{ selected_category.slug }}{% endif %}" class="remove-filter">×</a>
+                    </span>
+                    {% endif %}
+                    {% if selected_category %}
+                    <span class="active-filter">
+                        Categoría: {{ selected_category.name }}
+                        <a href="?q={{ query }}" class="remove-filter">×</a>
+                    </span>
+                    {% endif %}
+                    {% if query or selected_category %}
+                    <a href="{% url 'product_search' %}" class="clear-all">Limpiar filtros</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="no-query">
+                <h2>👆 Escribe algo para buscar</h2>
+                <p>Busca por nombre o descripción del producto</p>
+            </div>
+        {% endif %}
+
+        <!-- Grid de productos -->
+        {% if products %}
+            <div class="products-grid">
+                {% for product in products %}
+                    <div class="product-card">
+                        <div class="product-image">
+                            {% if product.image %}
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                            {% else %}
+                                <div class="no-image">📦</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="product-info">
+                            <h3>{{ product.name }}</h3>
+                            <p class="product-description">
+                                {{ product.description|default:"Sin descripción"|truncatewords:20 }}
+                            </p>
+                            <p class="product-price">${{ product.price }}</p>
+
+                            <!-- Mostrar categoría del producto -->
+                            {% if product.category %}
+                            <div class="product-category">
+                                <span class="badge-category">{{ product.category.name }}</span>
+                            </div>
+                            {% endif %}
+
+                            <!-- ✅ ACTUALIZADO: Usar método del modelo -->
+                            <div class="product-stock">
+                                {{ product.get_availability_display }}
+                            </div>
+                        </div>
+
+                        <div class="product-actions">
+                            <!-- ✅ CORREGIDO: Usar product.slug en lugar de product.id -->
+                            <a href="{% url 'product_detail' product.slug %}" class="btn btn-primary">
+                                Ver Detalles
+                            </a>
+                            {% if product.stock_quantity > 0 %}
+                                <form action="{% url 'cart_add' product.id %}" method="post" class="cart-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="quantity" value="1">
+<button hx-post="{% url 'add_to_cart_htmx' product.id %}"
+        hx-target="#cart-count"
+        hx-swap="outerHTML"
+        hx-indicator="#spinner-{{ product.id }}"
+        class="btn btn-success cart-add-btn"
+        data-product-id="{{ product.id }}">
+    🛒 Añadir al Carrito
+    <span id="spinner-{{ product.id }}" class="htmx-indicator">⏳</span>
+</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% elif query or selected_category %}
+            <div class="no-results">
+                <h3>💡 Sugerencias:</h3>
+                <ul>
+                    <li>Revisa la ortografía</li>
+                    <li>Usa términos más generales</li>
+                    <li>Prueba con otras categorías</li>
+                    <li>Elimina algunos filtros</li>
+                </ul>
+                <a href="{% url 'product_list' %}" class="btn btn-primary">
+                    Ver Todos los Productos
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .search-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .search-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .search-header h1 {
+        color: #2c3e50;
+        margin-bottom: 1.5rem;
+        font-size: 2.5rem;
+    }
+
+    .search-form {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .search-filters {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .search-input-group {
+        display: flex;
+        gap: 0;
+        border-radius: 50px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 1rem 1.5rem;
+        border: none;
+        font-size: 1.1rem;
+        outline: none;
+        background: white;
+    }
+
+    .search-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .search-btn:hover {
+        transform: translateX(2px);
+    }
+
+    /* ✅ NUEVO: Estilos para filtro de categoría */
+    .category-filter {
+        display: flex;
+        justify-content: center;
+    }
+
+    .category-select {
+        padding: 0.75rem 1rem;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 1rem;
+        background: white;
+        color: #495057;
+        cursor: pointer;
+        transition: all 0.3s;
+        min-width: 200px;
+    }
+
+    .category-select:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    .results-info {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+
+    .results-info h2 {
+        color: #2c3e50;
+        margin: 0 0 1rem 0;
+    }
+
+    /* ✅ NUEVO: Filtros activos */
+    .active-filters {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .active-filter {
+        background: #007bff;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .remove-filter {
+        color: white;
+        text-decoration: none;
+        font-weight: bold;
+        cursor: pointer;
+        padding: 0.2rem;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .remove-filter:hover {
+        background: rgba(255,255,255,0.2);
+    }
+
+    .clear-all {
+        color: #007bff;
+        text-decoration: none;
+        font-size: 0.9rem;
+        margin-left: 1rem;
+    }
+
+    .clear-all:hover {
+        text-decoration: underline;
+    }
+
+    .no-query {
+        text-align: center;
+        padding: 3rem;
+        color: #7f8c8d;
+    }
+
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .product-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+    }
+
+    .product-image {
+        width: 100%;
+        height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .product-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .no-image {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+    }
+
+    .product-info {
+        flex-grow: 1;
+    }
+
+    .product-info h3 {
+        margin: 0 0 0.5rem 0;
+        color: #2c3e50;
+        font-size: 1.2rem;
+    }
+
+    .product-description {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        margin-bottom: 1rem;
+    }
+
+    .product-price {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: #27ae60;
+        margin: 0.5rem 0;
+    }
+
+    .product-category {
+        margin: 0.5rem 0;
+    }
+
+    .badge-category {
+        background: #6f42c1;
+        color: white;
+        padding: 0.3rem 0.6rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+
+    .product-stock {
+        margin: 0.5rem 0;
+        font-size: 0.9rem;
+        font-weight: bold;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        display: inline-block;
+    }
+
+    .stock-available {
+        color: #27ae60;
+    }
+
+    .stock-out {
+        color: #e74c3c;
+    }
+
+    .product-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .cart-form {
+        margin: 0;
+    }
+
+    .btn {
+        padding: 0.75rem 1rem;
+        border: none;
+        border-radius: 6px;
+        text-decoration: none;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 600;
+        display: block;
+        width: 100%;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .btn-primary {
+        background: #3498db;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #2980b9;
+    }
+
+    .btn-success {
+        background: #27ae60;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #219653;
+    }
+
+    .no-results {
+        text-align: center;
+        padding: 3rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .no-results h3 {
+        color: #2c3e50;
+        margin-bottom: 1rem;
+    }
+
+    .no-results ul {
+        text-align: left;
+        display: inline-block;
+        margin-bottom: 2rem;
+    }
+
+    .no-results li {
+        margin-bottom: 0.5rem;
+        color: #7f8c8d;
+    }
+
+    @media (max-width: 768px) {
+        .search-input-group {
+            flex-direction: column;
+            border-radius: 12px;
+        }
+
+        .search-input {
+            border-radius: 12px 12px 0 0;
+        }
+
+        .search-btn {
+            border-radius: 0 0 12px 12px;
+        }
+
+        .search-filters {
+            gap: 1rem;
+        }
+
+        .category-select {
+            min-width: 100%;
+        }
+
+        .active-filters {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .active-filter {
+            justify-content: space-between;
+        }
+
+        .clear-all {
+            margin-left: 0;
+            margin-top: 0.5rem;
+        }
+
+        .products-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Enfocar automáticamente el campo de búsqueda
+    const searchInput = document.querySelector('.search-input');
+    if (searchInput && !searchInput.value) {
+        searchInput.focus();
+    }
+
+    // Auto-submit al cambiar categoría
+    const categorySelect = document.querySelector('.category-select');
+    if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+});
+</script>
+{% endblock %}

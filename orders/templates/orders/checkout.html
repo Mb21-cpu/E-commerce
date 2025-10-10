@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Checkout - Finalizar Compra{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Checkout - Finalizar Compra</h2>
+
+    <div class="row">
+        <!-- Resumen del Carrito -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Resumen de tu Pedido</h5>
+                </div>
+                <div class="card-body">
+                    {% for item in cart %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <div>
+                            <strong>{{ item.product.name }}</strong>
+                            <br>
+                            <small>Cantidad: {{ item.quantity }}</small>
+                        </div>
+                        <span>${{ item.total_price }}</span>
+                    </div>
+                    {% endfor %}
+                    <hr>
+
+                    <!-- 🆕 SECCIÓN DE DESCUENTO -->
+                    {% if cart.has_discount %}
+                    <div class="d-flex justify-content-between text-success mb-2">
+                        <span>Descuento ({{ cart.get_coupon.code }}):</span>
+                        <strong>- ${{ cart.get_discount_amount }}</strong>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between">
+                        <strong>Total:</strong>
+                        <!-- 🆕 MOSTRAR TOTAL CON DESCUENTO -->
+                        <strong class="{% if cart.has_discount %}text-primary{% endif %}">
+                            ${{ cart.get_total_with_discount }}
+                            {% if cart.has_discount %}
+                            <small class="text-muted d-block" style="text-decoration: line-through;">
+                                ${{ cart.get_total_price }}
+                            </small>
+                            {% endif %}
+                        </strong>
+                    </div>
+
+                    <!-- 🆕 INFO DEL CUPÓN APLICADO -->
+                    {% if cart.has_discount %}
+                    <div class="alert alert-success mt-3 p-2">
+                        <small>
+                            🎫 Cupón aplicado: <strong>{{ cart.get_coupon.code }}</strong>
+                            {% if cart.get_coupon.discount_type == 'percentage' %}
+                                ({{ cart.get_coupon.discount_value }}% de descuento)
+                            {% else %}
+                                (${{ cart.get_coupon.discount_value }} de descuento)
+                            {% endif %}
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 🆕 BOTÓN PARA VOLVER AL CARRITO Y GESTIONAR CUPONES -->
+            <div class="mt-3">
+                <a href="{% url 'cart_detail' %}" class="btn btn-outline-secondary btn-sm">
+                    ← Volver al carrito para modificar
+                </a>
+            </div>
+        </div>
+
+        <!-- Formulario de Checkout -->
+        <div class="col-md-8">
+            <!-- Sección de Direcciones Guardadas -->
+            {% if user.is_authenticated and user_addresses %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>📍 Mis Direcciones Guardadas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Seleccionar dirección guardada:</strong></label>
+                        <select class="form-select" id="addressSelector">
+                            <option value="">-- Seleccionar una dirección --</option>
+                            {% for address in user_addresses %}
+                            <option value="{{ address.id }}"
+                                    data-fullname="{{ address.full_name }}"
+                                    data-address="{{ address.street_address }}"
+                                    data-city="{{ address.city }}"
+                                    data-postal="{{ address.postal_code }}"
+                                    data-country="{{ address.country }}"
+                                    {% if address.is_default %}selected{% endif %}>
+                                {{ address.full_name }} - {{ address.street_address }}, {{ address.city }}
+                                {% if address.is_default %} (Principal){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="useSelectedAddress()">
+                            📝 Usar esta dirección
+                        </button>
+                        <a href="{% url 'address_list' %}" class="btn btn-outline-secondary btn-sm">
+                            🗂️ Gestionar direcciones
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Formulario de Envío y Pago -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>Información de Envío y Pago</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="checkoutForm">
+                        {% csrf_token %}
+
+                        <!-- Información Personal -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label">Nombre</label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                <div class="text-danger">{{ form.first_name.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.last_name.id_for_label }}" class="form-label">Apellido</label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                <div class="text-danger">{{ form.last_name.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                            <div class="text-danger">{{ form.email.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Dirección de Envío -->
+                        <div class="mb-3">
+                            <label for="{{ form.shipping_address.id_for_label }}" class="form-label">Dirección</label>
+                            {{ form.shipping_address }}
+                            {% if form.shipping_address.errors %}
+                                <div class="text-danger">{{ form.shipping_address.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.city.id_for_label }}" class="form-label">Ciudad</label>
+                                {{ form.city }}
+                                {% if form.city.errors %}
+                                <div class="text-danger">{{ form.city.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.postal_code.id_for_label }}" class="form-label">Código Postal</label>
+                                {{ form.postal_code }}
+                                {% if form.postal_code.errors %}
+                                <div class="text-danger">{{ form.postal_code.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.country.id_for_label }}" class="form-label">País</label>
+                            {{ form.country }}
+                            {% if form.country.errors %}
+                                <div class="text-danger">{{ form.country.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Botón de Submit -->
+                        <div class="d-grid">
+                            {% if stripe_configured %}
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                💳 Proceder al Pago - ${{ cart.get_total_with_discount }}
+                            </button>
+                            {% else %}
+                            <button type="submit" class="btn btn-warning btn-lg">
+                                🧪 Proceder a Simulación de Pago - ${{ cart.get_total_with_discount }}
+                            </button>
+                            <small class="text-muted mt-2 d-block">
+                                Stripe no está configurado. Se usará el modo de simulación.
+                            </small>
+                            {% endif %}
+                        </div>
+
+                        <!-- 🆕 INFORMACIÓN DEL DESCUENTO EN EL BOTÓN -->
+                        {% if cart.has_discount %}
+                        <div class="alert alert-info mt-3">
+                            <small>
+                                💰 <strong>¡Estás ahorrando ${{ cart.get_discount_amount }}!</strong>
+                                Con el cupón {{ cart.get_coupon.code }} aplicado.
+                            </small>
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript para el selector de direcciones -->
+<script>
+function useSelectedAddress() {
+    const select = document.getElementById('addressSelector');
+    const selectedOption = select.options[select.selectedIndex];
+
+    if (selectedOption.value) {
+        // Autocompletar campos del formulario
+        document.getElementById('{{ form.first_name.id_for_label }}').value = selectedOption.dataset.fullname.split(' ')[0] || '';
+        document.getElementById('{{ form.last_name.id_for_label }}').value = selectedOption.dataset.fullname.split(' ').slice(1).join(' ') || '';
+        document.getElementById('{{ form.shipping_address.id_for_label }}').value = selectedOption.dataset.address;
+        document.getElementById('{{ form.city.id_for_label }}').value = selectedOption.dataset.city;
+        document.getElementById('{{ form.postal_code.id_for_label }}').value = selectedOption.dataset.postal;
+        document.getElementById('{{ form.country.id_for_label }}').value = selectedOption.dataset.country;
+
+        // Mostrar mensaje de éxito
+        alert('✅ Dirección cargada correctamente. Revisa los campos antes de continuar.');
+    } else {
+        alert('⚠️ Por favor selecciona una dirección primero.');
+    }
+}
+
+// Precargar dirección por defecto al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    const defaultOption = document.querySelector('#addressSelector option[selected]');
+    if (defaultOption) {
+        useSelectedAddress();
+    }
+});
+</script>
+
+<!-- Estilos para los campos del formulario -->
+<style>
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    padding: 10px;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.btn {
+    border-radius: 6px;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* 🆕 Estilos para mostrar el ahorro */
+.text-success {
+    color: #28a745 !important;
+}
+
+.text-primary {
+    color: #007bff !important;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+</style>
+{% endblock %}

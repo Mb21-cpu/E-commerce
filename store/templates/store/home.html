@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1>Bienvenido a Nuestra Tienda</h1>
+    <p>Descubre nuestros productos destacados</p>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Productos destacados -->
+    <section class="featured-products">
+        <h2>Productos Destacados</h2>
+
+        {% if products %}
+            <div class="product-grid">
+                {% for product in products %}
+                    <div class="product-card">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                        {% else %}
+                            <div class="no-image">Sin imagen</div>
+                        {% endif %}
+
+                        <h3>{{ product.name }}</h3>
+                        <p class="price">${{ product.price }}</p>
+                        <p class="description">{{ product.description|truncatewords:15 }}</p>
+
+                        <!-- Mostrar disponibilidad -->
+                        <div class="availability">
+                            {{ product.get_availability_display }}
+                        </div>
+
+                        <div class="product-actions">
+                            <!-- ✅ CORREGIDO: Usar product.slug en lugar de product.id -->
+                            <a href="{% url 'product_detail' product.slug %}" class="btn btn-primary">
+                                Ver Detalles
+                            </a>
+
+                            <!-- BOTÓN SIMPLE - SIN HTMX, SIN FORM COMPLEJO -->
+<button hx-post="{% url 'add_to_cart_htmx' product.id %}"
+        hx-target="#cart-count"
+        hx-swap="outerHTML"
+        hx-indicator="#spinner-{{ product.id }}"
+        class="btn btn-success cart-add-btn"
+        data-product-id="{{ product.id }}">
+    🛒 Añadir al Carrito
+    <span id="spinner-{{ product.id }}" class="htmx-indicator">⏳</span>
+</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div style="text-align: center; margin-top: 2rem;">
+                <a href="{% url 'product_list' %}" class="btn btn-secondary">
+                    Ver Todos los Productos
+                </a>
+            </div>
+
+        {% else %}
+            <div class="no-products">
+                <p>No hay productos disponibles en este momento.</p>
+                {% if user.is_staff %}
+                    <a href="/admin/store/product/add/" class="btn btn-primary">
+                        Añadir productos desde el Admin
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </section>
+
+    <!-- Información de la tienda -->
+    <section class="store-info">
+        <h2>¿Por qué comprar con nosotros?</h2>
+        <div class="features-grid">
+            <div class="feature">
+                <h3>🚚 Envío Rápido</h3>
+                <p>Recibe tus productos en 24-48 horas</p>
+            </div>
+            <div class="feature">
+                <h3>🔒 Pago Seguro</h3>
+                <p>Transacciones protegidas</p>
+            </div>
+            <div class="feature">
+                <h3>📞 Soporte</h3>
+                <p>Atención al cliente 24/7</p>
+            </div>
+        </div>
+    </section>
+</div>
+
+<style>
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        padding: 0.75rem 1.25rem;
+        border: 1px solid #c3e6cb;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+    }
+
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .product-card {
+        border: 1px solid #ddd;
+        padding: 1rem;
+        border-radius: 8px;
+        transition: transform 0.2s;
+        background: white;
+    }
+
+    .product-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .product-card img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+
+    .no-image {
+        width: 100%;
+        height: 200px;
+        background: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        color: #666;
+    }
+
+    .price {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #333;
+        margin: 0.5rem 0;
+    }
+
+    .description {
+        color: #666;
+        font-size: 0.9rem;
+        margin: 0.5rem 0;
+    }
+
+    .availability {
+        font-size: 0.8rem;
+        font-weight: bold;
+        margin: 0.5rem 0;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        display: inline-block;
+    }
+
+    .product-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        text-decoration: none;
+        cursor: pointer;
+        flex: 1;
+        text-align: center;
+        transition: all 0.3s;
+        display: inline-block;
+    }
+
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #0056b3;
+        transform: translateY(-1px);
+    }
+
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #1e7e34;
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        display: inline-block;
+    }
+
+    .btn-secondary:hover {
+        background: #545b62;
+        transform: translateY(-1px);
+    }
+
+    .no-products {
+        text-align: center;
+        padding: 2rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .store-info {
+        margin-top: 3rem;
+        padding: 2rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .feature {
+        text-align: center;
+        padding: 1rem;
+    }
+
+    .feature h3 {
+        margin: 0.5rem 0;
+        color: #333;
+    }
+
+    @media (max-width: 768px) {
+        .product-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .product-actions {
+            flex-direction: column;
+        }
+
+        .features-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}

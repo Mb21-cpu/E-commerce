@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Mis Direcciones{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+
+            <h2 class="display-5 fw-bold text-center mb-4" style="color: #001f3f;">
+                Mis Direcciones 📍
+            </h2>
+
+            <div class="d-flex justify-content-center mb-4">
+                <a href="{% url 'address_create' %}" class="btn btn-lg fw-bold"
+                   style="background-color: #001f3f; color: white; border: none;">
+                    + Agregar Nueva Dirección
+                </a>
+            </div>
+
+            {% if addresses %}
+                <div class="row">
+                    {% for address in addresses %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card shadow-sm h-100
+                            {% if address.is_default %}border-4 border-primary{% endif %}"
+                            style="border-radius: 10px; background-color: white;">
+
+                            <div class="card-body d-flex flex-column">
+                                <div class="mb-2">
+                                    {% if address.is_default %}
+                                        <span class="badge rounded-pill"
+                                              style="background-color: #ffc300; color: #001f3f; font-weight: bold;">
+                                            Dirección Principal
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <h5 class="card-title fw-semibold text-truncate" style="color: #001f3f;">
+                                    {{ address.full_name }}
+                                </h5>
+
+                                <p class="card-text text-muted flex-grow-1">
+                                    {{ address.street_address }}<br>
+                                    {{ address.city }}, {{ address.postal_code }}<br>
+                                    {{ address.country }}
+                                </p>
+
+                                <div class="d-flex justify-content-end mt-3">
+                                    <a href="{% url 'address_edit' address.pk %}"
+                                       class="btn btn-sm btn-outline-secondary me-2">
+                                        Editar
+                                    </a>
+                                    <a href="{% url 'address_delete' address.pk %}"
+                                       class="btn btn-sm btn-outline-danger">
+                                        Eliminar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert py-4 text-center"
+                     style="background-color: #fffacd; color: #001f3f; border-color: #ffc300; border-radius: 8px;">
+                    <h4 class="alert-heading">¡Ups!</h4>
+                    <p>No tienes direcciones guardadas. Es hora de añadir una.</p>
+                    <hr style="border-top-color: #ffc300;">
+                    <a href="{% url 'address_create' %}" class="btn fw-bold"
+                       style="background-color: #ffc300; color: #001f3f;">
+                        Agrega tu primera dirección ahora
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

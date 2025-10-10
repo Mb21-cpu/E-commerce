@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="success-container">
+    <div class="success-card">
+        <div class="success-icon">🎉</div>
+        <h1>¡Pedido Confirmado!</h1>
+        <p class="order-number">Número de pedido: <strong>#{{ order.id }}</strong></p>
+        
+        <div class="success-details">
+            <div class="detail-item">
+                <span class="label">Email de confirmación:</span>
+                <span class="value">{{ order.customer_email }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Total pagado:</span>
+                <span class="value">${{ order.total_paid }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Fecha:</span>
+                <span class="value">{{ order.created_at|date:"d M Y H:i" }}</span>
+            </div>
+        </div>
+
+        <div class="success-actions">
+            <a href="{% url 'cart_detail' %}" class="btn btn-primary">  <!-- ← CAMBIADO -->
+                🛒 Ver Carrito (debería estar vacío)
+            </a>
+            <a href="{% url 'product_list' %}" class="btn btn-secondary">
+                📦 Seguir Comprando
+            </a>
+        </div>
+
+        <div class="success-note">
+            <p>✅ Tu carrito ha sido limpiado automáticamente</p>
+            <p>📧 Recibirás un email de confirmación con los detalles.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// Redirigir automáticamente al carrito después de 3 segundos
+setTimeout(() => {
+    console.log("🔄 Redirigiendo al carrito...");
+    window.location.href = "{% url 'cart_detail' %}";
+}, 3000);
+
+// Verificar estado del carrito
+fetch('/cart/count/')
+    .then(response => response.json())
+    .then(data => {
+        console.log('Items en carrito después del pago:', data.count);
+        if (data.count === 0) {
+            console.log('✅ Carrito limpiado correctamente');
+        } else {
+            console.warn('⚠️ El carrito tiene', data.count, 'items después del pago');
+        }
+    });
+</script>
+
+<style>
+    .success-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 70vh;
+        padding: 2rem 1rem;
+    }
+    
+    .success-card {
+        background: white;
+        padding: 3rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        text-align: center;
+        max-width: 500px;
+        width: 100%;
+    }
+    
+    .success-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+    
+    .success-card h1 {
+        color: #27ae60;
+        margin-bottom: 1rem;
+    }
+    
+    .order-number {
+        font-size: 1.2rem;
+        color: #2c3e50;
+        margin-bottom: 2rem;
+    }
+    
+    .success-details {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        text-align: left;
+    }
+    
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    
+    .detail-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .label {
+        color: #7f8c8d;
+        font-weight: bold;
+    }
+    
+    .value {
+        color: #2c3e50;
+    }
+    
+    .success-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
+    
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+    }
+    
+    .btn-primary {
+        background: #3498db;
+        color: white;
+    }
+    
+    .btn-secondary {
+        background: #95a5a6;
+        color: white;
+    }
+    
+    .success-note {
+        background: #e8f6f3;
+        padding: 1rem;
+        border-radius: 6px;
+        border-left: 4px solid #27ae60;
+    }
+    
+    .success-note p {
+        margin: 0.5rem 0;
+        color: #27ae60;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}

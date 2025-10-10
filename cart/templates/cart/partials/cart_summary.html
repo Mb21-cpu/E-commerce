@@ -1,0 +1,23 @@
+<!-- cart/templates/cart/partials/cart_summary.html -->
+<div class="cart-summary">
+    <div class="summary-details">
+        <h3>📊 Resumen del Pedido</h3>
+
+        <div class="summary-line">
+            <span>Subtotal:</span>
+            <span>${{ cart.get_total_price }}</span>
+        </div>
+
+        {% if cart.has_discount %}
+        <div class="summary-line discount">
+            <span>Descuento ({{ cart.get_coupon.code }}):</span>
+            <span class="discount-amount">- ${{ cart.get_discount_amount }}</span>
+        </div>
+        {% endif %}
+
+        <div class="summary-line total">
+            <span><strong>Total:</strong></span>
+            <span><strong class="text-success">${{ cart.get_total_with_discount }}</strong></span>
+        </div>
+    </div>
+</div>

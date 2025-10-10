@@ -1,0 +1,506 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="products-container">
+    <div class="products-header">
+        <h1>
+            {% if current_category %}
+                🗂️ {{ current_category.name }}
+            {% else %}
+                📦 Todos Nuestros Productos
+            {% endif %}
+        </h1>
+        <p>
+            {% if current_category %}
+                {{ current_category.description|default:"Productos de esta categoría" }}
+            {% else %}
+                Descubre nuestra amplia selección de productos
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- ✅ NUEVO: Filtro de Categorías -->
+    <div class="categories-filter">
+        <div class="filter-card">
+            <h4>🗂️ Filtrar por Categoría</h4>
+            <div class="categories-list">
+                <a href="{% url 'product_list' %}"
+                   class="category-item {% if not current_category %}active{% endif %}">
+                    Todos los productos
+                    <span class="product-count">{{ products.paginator.count }}</span>
+                </a>
+                {% for category in categories %}
+                <a href="{% url 'product_list_by_category' category.slug %}"
+                   class="category-item {% if current_category and current_category.slug == category.slug %}active{% endif %}">
+                    {{ category.name }}
+                    <span class="product-count">{{ category.products.count }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="products-grid">
+        {% for product in products %}
+            <div class="product-card">
+                <div class="product-image">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
+                    {% else %}
+                        <div class="no-image">📦</div>
+                    {% endif %}
+                </div>
+
+                <div class="product-info">
+                    <h3>{{ product.name }}</h3>
+                    <p class="product-description">
+                        {{ product.description|default:"Sin descripción"|truncatewords:15 }}
+                    </p>
+                    <p class="product-price">${{ product.price }}</p>
+
+                    <!-- Mostrar categoría del producto -->
+                    {% if product.category %}
+                    <div class="product-category">
+                        <span class="badge-category">{{ product.category.name }}</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- ✅ ACTUALIZADO: Usar el método de disponibilidad del modelo -->
+                    <div class="product-stock">
+                        {{ product.get_availability_display }}
+                    </div>
+                </div>
+
+                <div class="product-actions">
+                    <!-- ✅ CORREGIDO: Usar product.slug en lugar de product.id -->
+                    <a href="{% url 'product_detail' product.slug %}" class="btn btn-primary">
+                        Ver Detalles
+                    </a>
+
+                    {% if product.stock_quantity > 0 %}
+                    <form action="{% url 'cart_add' product.id %}" method="post" class="cart-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="quantity" value="1">
+                        <input type="hidden" name="redirect_url" value="{{ request.path }}">
+<button hx-post="{% url 'add_to_cart_htmx' product.id %}"
+        hx-target="#cart-count"
+        hx-swap="outerHTML"
+        hx-indicator="#spinner-{{ product.id }}"
+        class="btn btn-success cart-add-btn"
+        data-product-id="{{ product.id }}">
+    🛒 Añadir al Carrito
+    <span id="spinner-{{ product.id }}" class="htmx-indicator">⏳</span>
+</button>
+                    </form>
+                    {% else %}
+                    <button class="btn btn-disabled" disabled>
+                        No Disponible
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        {% empty %}
+            <div class="no-products">
+                <h3>😔 No hay productos disponibles</h3>
+                <p>Intenta con otros criterios de búsqueda</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1" class="btn btn-outline">&laquo; Primera</a>
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-outline">Anterior</a>
+            {% endif %}
+
+            <span class="current">
+                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="btn btn-outline">Siguiente</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}" class="btn btn-outline">Última &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .products-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+
+    .products-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .products-header h1 {
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+        font-size: 2.5rem;
+    }
+
+    .products-header p {
+        color: #7f8c8d;
+        font-size: 1.1rem;
+    }
+
+    /* ✅ NUEVO: Estilos para filtro de categorías */
+    .categories-filter {
+        margin-bottom: 2rem;
+    }
+
+    .filter-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        max-width: 300px;
+        margin: 0 auto;
+    }
+
+    .filter-card h4 {
+        margin: 0 0 1rem 0;
+        color: #2c3e50;
+        font-size: 1.1rem;
+    }
+
+    .categories-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .category-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        text-decoration: none;
+        color: #495057;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    .category-item:hover {
+        background: #e9ecef;
+        transform: translateX(5px);
+    }
+
+    .category-item.active {
+        background: #007bff;
+        color: white;
+        border-color: #0056b3;
+    }
+
+    .product-count {
+        background: #6c757d;
+        color: white;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+
+    .category-item.active .product-count {
+        background: white;
+        color: #007bff;
+    }
+
+    .product-category {
+        margin: 0.5rem 0;
+    }
+
+    .badge-category {
+        background: #6f42c1;
+        color: white;
+        padding: 0.3rem 0.6rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    .product-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+    }
+
+    .product-image {
+        width: 100%;
+        height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .product-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .no-image {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+    }
+
+    .product-info {
+        flex-grow: 1;
+        margin-bottom: 1rem;
+    }
+
+    .product-info h3 {
+        margin: 0 0 0.5rem 0;
+        color: #2c3e50;
+        font-size: 1.2rem;
+    }
+
+    .product-description {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        margin-bottom: 1rem;
+    }
+
+    .product-price {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: #27ae60;
+        margin: 0.5rem 0;
+    }
+
+    .product-stock {
+        margin: 0.5rem 0;
+        font-size: 0.9rem;
+        font-weight: bold;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        display: inline-block;
+    }
+
+    .stock-available {
+        color: #27ae60;
+    }
+
+    .stock-out {
+        color: #e74c3c;
+    }
+
+    .product-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: auto;
+    }
+
+    .btn {
+        padding: 0.75rem 1rem;
+        border: none;
+        border-radius: 6px;
+        text-decoration: none;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 600;
+        display: block;
+        width: 100%;
+    }
+
+    .btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .btn-primary {
+        background: #3498db;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #2980b9;
+    }
+
+    .btn-success {
+        background: #27ae60;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #219653;
+    }
+
+    .btn-disabled {
+        background: #95a5a6;
+        color: #ecf0f1;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    .btn-outline {
+        background: transparent;
+        border: 2px solid #3498db;
+        color: #3498db;
+        padding: 0.5rem 1rem;
+    }
+
+    .btn-outline:hover {
+        background: #3498db;
+        color: white;
+    }
+
+    .no-products {
+        text-align: center;
+        padding: 3rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        grid-column: 1 / -1;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .step-links {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .current {
+        padding: 0.5rem 1rem;
+        background: #f8f9fa;
+        border-radius: 4px;
+        font-weight: 600;
+    }
+
+    .alert {
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border-color: #c3e6cb;
+    }
+
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border-color: #f5c6cb;
+    }
+
+    @media (max-width: 768px) {
+        .products-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .products-header h1 {
+            font-size: 2rem;
+        }
+
+        .filter-card {
+            max-width: 100%;
+        }
+
+        .pagination {
+            flex-direction: column;
+        }
+
+        .step-links {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-ocultar mensajes después de 5 segundos
+    setTimeout(function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
+            alert.style.transition = 'all 0.5s ease';
+            alert.style.opacity = '0';
+            alert.style.transform = 'translateY(-10px)';
+            setTimeout(function() {
+                alert.remove();
+            }, 500);
+        });
+    }, 5000);
+
+    // Feedback visual para botones de añadir al carrito
+    const cartForms = document.querySelectorAll('.cart-form');
+    cartForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const button = this.querySelector('button[type="submit"]');
+            const originalText = button.innerHTML;
+
+            button.innerHTML = '⏳ Añadiendo...';
+            button.disabled = true;
+
+            setTimeout(() => {
+                if (button.disabled) {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }
+            }, 3000);
+        });
+    });
+});
+</script>
+{% endblock %}
