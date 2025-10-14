@@ -1,3 +1,5 @@
+import time
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
@@ -6,6 +8,8 @@ from .forms import CustomUserCreationForm, EmailAuthenticationForm
 from django.contrib.auth.decorators import login_required
 from .forms import AddressForm
 from .models import Address
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 
 def register_view(request):
@@ -46,10 +50,15 @@ def custom_logout(request):
 
 
 
-@login_required
 def address_list(request):
     addresses = Address.objects.filter(user=request.user)
-    return render(request, 'accounts/address_list.html', {'addresses': addresses})
+
+    # Evitar cache del navegador
+    response = render(request, 'accounts/address_list.html', {'addresses': addresses})
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 @login_required
 def address_create(request):
@@ -92,12 +101,15 @@ def address_edit(request, pk):
 @login_required
 def address_delete(request, pk):
     address = get_object_or_404(Address, pk=pk, user=request.user)
+
     if request.method == 'POST':
         address.delete()
+        messages.success(request, 'Dirección eliminada correctamente.')
+        # Redirigir DIRECTAMENTE a address_list sin pasar por otros templates
         return redirect('address_list')
+
+    # Si es GET, mostrar la confirmación
     return render(request, 'accounts/address_confirm_delete.html', {'address': address})
-
-
 
 
 

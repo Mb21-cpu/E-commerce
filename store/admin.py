@@ -27,6 +27,8 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ['name', 'description', 'sku']
     prepopulated_fields = {'slug': ('name',)}  # Genera slug automáticamente
 
+    inlines = [ProductImageInline]
+
     # 🆕 FIELDS EXPLÍCITOS - INCLUIR SLUG
     fields = [
         'name',

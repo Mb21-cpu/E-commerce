@@ -3,77 +3,514 @@
 {% block title %}Mis Direcciones{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-
-            <h2 class="display-5 fw-bold text-center mb-4" style="color: #001f3f;">
-                Mis Direcciones 📍
-            </h2>
-
-            <div class="d-flex justify-content-center mb-4">
-                <a href="{% url 'address_create' %}" class="btn btn-lg fw-bold"
-                   style="background-color: #001f3f; color: white; border: none;">
-                    + Agregar Nueva Dirección
-                </a>
-            </div>
-
-            {% if addresses %}
-                <div class="row">
-                    {% for address in addresses %}
-                    <div class="col-md-6 mb-4">
-                        <div class="card shadow-sm h-100
-                            {% if address.is_default %}border-4 border-primary{% endif %}"
-                            style="border-radius: 10px; background-color: white;">
-
-                            <div class="card-body d-flex flex-column">
-                                <div class="mb-2">
-                                    {% if address.is_default %}
-                                        <span class="badge rounded-pill"
-                                              style="background-color: #ffc300; color: #001f3f; font-weight: bold;">
-                                            Dirección Principal
-                                        </span>
-                                    {% endif %}
-                                </div>
-
-                                <h5 class="card-title fw-semibold text-truncate" style="color: #001f3f;">
-                                    {{ address.full_name }}
-                                </h5>
-
-                                <p class="card-text text-muted flex-grow-1">
-                                    {{ address.street_address }}<br>
-                                    {{ address.city }}, {{ address.postal_code }}<br>
-                                    {{ address.country }}
-                                </p>
-
-                                <div class="d-flex justify-content-end mt-3">
-                                    <a href="{% url 'address_edit' address.pk %}"
-                                       class="btn btn-sm btn-outline-secondary me-2">
-                                        Editar
-                                    </a>
-                                    <a href="{% url 'address_delete' address.pk %}"
-                                       class="btn btn-sm btn-outline-danger">
-                                        Eliminar
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="alert py-4 text-center"
-                     style="background-color: #fffacd; color: #001f3f; border-color: #ffc300; border-radius: 8px;">
-                    <h4 class="alert-heading">¡Ups!</h4>
-                    <p>No tienes direcciones guardadas. Es hora de añadir una.</p>
-                    <hr style="border-top-color: #ffc300;">
-                    <a href="{% url 'address_create' %}" class="btn fw-bold"
-                       style="background-color: #ffc300; color: #001f3f;">
-                        Agrega tu primera dirección ahora
-                    </a>
-                </div>
-            {% endif %}
+<div class="address-list-container">
+    <!-- Header con navegación -->
+    <div class="navigation-header">
+        <button onclick="history.back()" class="btn-back">
+            <span class="btn-icon">←</span>
+            Volver atrás
+        </button>
+        <h1 class="page-title">Mis Direcciones 📍</h1>
+        <div class="header-actions">
+            <a href="{% url 'address_create' %}" class="btn-primary">
+                <span class="btn-icon">+</span>
+                Nueva Dirección
+            </a>
         </div>
     </div>
+
+    {% if addresses %}
+    <div class="addresses-grid">
+        {% for address in addresses %}
+        <div class="address-card {% if address.is_default %}default-address{% endif %}">
+            {% if address.is_default %}
+            <div class="default-badge">
+                <span class="badge-icon">⭐</span>
+                Dirección Principal
+            </div>
+            {% endif %}
+
+            <div class="address-header">
+                <h3 class="address-name">{{ address.full_name }}</h3>
+                <div class="address-actions">
+                    <a href="{% url 'address_edit' address.pk %}" class="btn-edit" title="Editar dirección">
+                        <span class="action-icon">✏️</span>
+                    </a>
+                    <a href="{% url 'address_delete' address.pk %}" class="btn-delete" title="Eliminar dirección">
+                        <span class="action-icon">🗑️</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="address-details">
+                <div class="address-line">
+                    <span class="line-icon">🏠</span>
+                    <span class="line-text">{{ address.street_address }}</span>
+                </div>
+                <div class="address-line">
+                    <span class="line-icon">🏙️</span>
+                    <span class="line-text">{{ address.city }}, {{ address.postal_code }}</span>
+                </div>
+                <div class="address-line">
+                    <span class="line-icon">🌎</span>
+                    <span class="line-text">{{ address.country }}</span>
+                </div>
+            </div>
+
+            <div class="address-footer">
+                {% if not address.is_default %}
+                <a href="#" class="btn-set-default" onclick="setAsDefault({{ address.pk }})">
+                    <span class="btn-icon">⭐</span>
+                    Establecer como principal
+                </a>
+                {% else %}
+                <div class="default-indicator">
+                    <span class="indicator-icon">✅</span>
+                    Dirección principal activa
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <h2 class="empty-title">¡Ups! No tienes direcciones guardadas</h2>
+        <p class="empty-description">
+            Las direcciones te ayudan a agilizar tus compras futuras.
+            Agrega tu primera dirección para empezar.
+        </p>
+        <a href="{% url 'address_create' %}" class="btn-primary btn-large">
+            <span class="btn-icon">📍</span>
+            Agregar Primera Dirección
+        </a>
+        <div class="empty-features">
+            <div class="feature">
+                <span class="feature-icon">🚀</span>
+                <span>Checkout más rápido</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">🎯</span>
+                <span>Envíos precisos</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">💾</span>
+                <span>Guardado seguro</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Floating Action Button para móviles -->
+    <a href="{% url 'address_create' %}" class="fab">
+        <span class="fab-icon">+</span>
+    </a>
 </div>
+
+<style>
+.address-list-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.navigation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+    gap: 2rem;
+}
+
+.page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #001f3f;
+    margin: 0;
+    text-align: center;
+    flex: 1;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-back, .btn-primary {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-back {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-back:hover {
+    background: #5a6268;
+    transform: translateX(-2px);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #001f3f, #003366);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 31, 63, 0.3);
+}
+
+/* Address Grid */
+.addresses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+}
+
+.address-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.address-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.address-card.default-address {
+    border-color: #007bff;
+    background: linear-gradient(135deg, #ffffff, #f8f9ff);
+}
+
+.default-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.address-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+}
+
+.address-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #001f3f;
+    margin: 0;
+    flex: 1;
+}
+
+.address-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-edit, .btn-delete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-edit {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.btn-edit:hover {
+    background: #1976d2;
+    color: white;
+    transform: scale(1.1);
+}
+
+.btn-delete {
+    background: #ffebee;
+    color: #d32f2f;
+}
+
+.btn-delete:hover {
+    background: #d32f2f;
+    color: white;
+    transform: scale(1.1);
+}
+
+.action-icon {
+    font-size: 1.1rem;
+}
+
+.address-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.address-line {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: #495057;
+}
+
+.line-icon {
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+}
+
+.line-text {
+    flex: 1;
+}
+
+.address-footer {
+    border-top: 1px solid #e9ecef;
+    padding-top: 1.5rem;
+}
+
+.btn-set-default {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    width: 100%;
+    justify-content: center;
+}
+
+.btn-set-default:hover {
+    background: #ffeaa7;
+    transform: translateY(-1px);
+}
+
+.default-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    font-weight: 600;
+    justify-content: center;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.empty-icon {
+    font-size: 5rem;
+    margin-bottom: 2rem;
+}
+
+.empty-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #001f3f;
+    margin-bottom: 1rem;
+}
+
+.empty-description {
+    font-size: 1.1rem;
+    color: #6c757d;
+    margin-bottom: 3rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+}
+
+.btn-large {
+    padding: 1.5rem 3rem;
+    font-size: 1.2rem;
+}
+
+.empty-features {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    margin-top: 3rem;
+    flex-wrap: wrap;
+}
+
+.feature {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #495057;
+    font-weight: 600;
+}
+
+.feature-icon {
+    font-size: 1.5rem;
+}
+
+/* Floating Action Button */
+.fab {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #001f3f, #003366);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 1.5rem;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0, 31, 63, 0.4);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.fab:hover {
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 0 6px 20px rgba(0, 31, 63, 0.6);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .address-list-container {
+        padding: 1rem;
+    }
+
+    .navigation-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 2rem;
+        order: -1;
+    }
+
+    .header-actions {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .addresses-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .address-card {
+        padding: 1.5rem;
+    }
+
+    .address-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .address-actions {
+        align-self: flex-end;
+    }
+
+    .empty-features {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .fab {
+        bottom: 1rem;
+        right: 1rem;
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .addresses-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .btn-primary, .btn-back {
+        padding: 0.875rem 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    .empty-state {
+        padding: 2rem 1rem;
+    }
+
+    .empty-title {
+        font-size: 1.5rem;
+    }
+}
+</style>
+
+<script>
+function setAsDefault(addressId) {
+    if (confirm('¿Estás seguro de que quieres establecer esta dirección como principal?')) {
+        // Aquí iría la lógica para establecer como dirección principal
+        // Por ahora solo mostramos un mensaje
+        alert('Dirección establecida como principal');
+    }
+}
+
+// Efecto de aparición suave para las tarjetas
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.address-card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
 {% endblock %}

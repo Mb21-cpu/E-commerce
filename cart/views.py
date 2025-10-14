@@ -190,83 +190,24 @@ def cart_icon(request):
 
 @require_POST
 def apply_coupon(request):
-    """Vista HTMX para aplicar cupones"""
-    print("🎯🎯🎯 APPLY_COUPON VISTA EJECUTADA 🎯🎯🎯")
-    print("🎯 Método:", request.method)
-    print("🎯 Es HTMX:", request.headers.get('HX-Request'))
-    print("🎯 POST data:", dict(request.POST))
-
-    coupon_code = request.POST.get('coupon_code', '').strip()
-    print(f"🎯 Código cupón recibido: '{coupon_code}'")
-
+    coupon_code = request.POST.get('coupon_code', '').strip().upper()
     cart = Cart(request)
-    print(f"🎯 Carrito vacío: {cart.is_empty()}")
-    print(f"🎯 Items en carrito: {len(cart)}")
 
-    # Verificar que el carrito no esté vacío
     if cart.is_empty():
-        print("🎯 Carrito vacío - retornando error")
-        return render(request, 'cart/partials/coupon_section.html', {
-            'cart': cart,
-            'coupon_error': 'Tu carrito está vacío'
-        })
-
-    # DEBUG: Verificar base de datos (SOLO PARA DIAGNÓSTICO)
-    try:
-        print("🎯 Buscando cupón en BD...")
-        all_coupons = Coupon.objects.all()
-        print(f"🎯 Todos los cupones: {list(all_coupons.values_list('code', 'is_active'))}")
-
-        # ⚠️ ELIMINA ESTAS LÍNEAS - SON LA CAUSA DEL PROBLEMA ⚠️
-        # coupon_query = Coupon.objects.filter(code__iexact=coupon_code.strip())
-        # print(f"🎯 Query resultado: {coupon_query}")
-        # if coupon_query.exists():
-        #     coupon = coupon_query.first()
-        #     print(f"🎯 Cupón encontrado: {coupon.code}, Activo: {coupon.is_active}")
-        # else:
-        #     print(f"🎯 ❌ Cupón NO encontrado: {coupon_code}")
-
-    except Exception as e:
-        print(f"🎯 ERROR en BD: {e}")
-        import traceback
-        traceback.print_exc()
-
-    # Aplicar cupón (DEJA QUE cart.apply_coupon MANEJE TODO)
-    try:
-        print("🎯 Llamando cart.apply_coupon...")
-        success, coupon = cart.apply_coupon(coupon_code)
-        print(f"🎯 Resultado apply_coupon: success={success}, coupon={coupon}")
-
-    except Exception as e:
-        print(f"🎯 ERROR en apply_coupon: {e}")
-        import traceback
-        traceback.print_exc()
-        return render(request, 'cart/partials/coupon_section.html', {
-            'cart': cart,
-            'coupon_error': f'Error interno: {str(e)}'
-        })
-
-    if success:
-        print(f"🎯 ✅ Cupón aplicado exitosamente: {coupon.code}")
-        return render(request, 'cart/partials/coupon_section.html', {
-            'cart': cart,
-            'applied_coupon': coupon,
-            'coupon_success': f'¡Cupón {coupon.code} aplicado correctamente!'
-        })
+        messages.error(request, 'Tu carrito está vacío')
     else:
-        print("🎯 ❌ Cupón no encontrado o inactivo")
-        return render(request, 'cart/partials/coupon_section.html', {
-            'cart': cart,
-            'coupon_error': 'El código introducido no es válido o está inactivo'
-        })
+        success, coupon = cart.apply_coupon(coupon_code)
+        if success:
+            messages.success(request, f'¡Cupón {coupon.code} aplicado correctamente!')
+        else:
+            messages.error(request, 'El código introducido no es válido o está inactivo')
+
+    return redirect('cart_detail')
+
 
 @require_POST
 def remove_coupon(request):
-    """Vista HTMX para remover cupón"""
     cart = Cart(request)
     cart.remove_coupon()
-
-    return render(request, 'cart/partials/coupon_section.html', {
-        'cart': cart,
-        'coupon_info': 'Cupón removido correctamente'
-    })
+    messages.success(request, 'Cupón removido correctamente')
+    return redirect('cart_detail')
