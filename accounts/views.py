@@ -105,12 +105,10 @@ def address_delete(request, pk):
     if request.method == 'POST':
         address.delete()
         messages.success(request, 'Dirección eliminada correctamente.')
-        # Redirigir DIRECTAMENTE a address_list sin pasar por otros templates
-        return redirect('address_list')
+        # Redirigir al nombre de la URL 'order_history' que existe en orders/urls.py
+        return redirect('order_history')  # ← Este es el nombre correcto
 
-    # Si es GET, mostrar la confirmación
     return render(request, 'accounts/address_confirm_delete.html', {'address': address})
-
 
 
 
